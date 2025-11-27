@@ -20,9 +20,11 @@ function formatShowDateForDisplay(rawDate) {
 }
 
 function formatShowDateForNavbar(rawDate) {
-  if (!rawDate) return "";
+  if (!rawDate) return { dayName: "", monthDay: "" };
   const d = new Date(rawDate);
-  return d.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
+  const dayName = d.toLocaleDateString("en-US", { weekday: "long" });
+  const monthDay = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return { dayName, monthDay };
 }
 
 function formatShowStart(rawStart) {
@@ -47,9 +49,6 @@ function renderRunners(runnerNames, runnerStreams) {
   }).join(" ");
 }
 
-// -------------------------------------------------------------
-// Resolve logo URL
-// -------------------------------------------------------------
 function resolveLogo(showName) {
   const formattedName = showName.replace(/[/\\?%*:|"<>]/g, "");
   return `Logos/${formattedName}.png`;
@@ -64,48 +63,62 @@ async function renderSchedule() {
 
   // Group rows by date
   rows.forEach(r => {
-    const date = formatShowDateForNavbar(r["Show Date"]);
-    if (!byDate[date]) byDate[date] = [];
-    byDate[date].push(r);
+    const { dayName, monthDay } = formatShowDateForNavbar(r["Show Date"]);
+    const dateKey = r["Show Date"]; // use original for IDs
+    if (!byDate[dateKey]) byDate[dateKey] = { rows: [], dayName, monthDay };
+    byDate[dateKey].rows.push(r);
   });
 
   const navContainer = document.getElementById("schedule-nav");
   const container = document.getElementById("schedule");
   container.innerHTML = "";
 
-  // Build navbar buttons (keep MM/DD/YYYY format)
-  const dayButtons = {};
+  // Remove old buttons
   [...navContainer.querySelectorAll("button")].forEach(b => b.remove());
 
-  Object.keys(byDate).sort().forEach(date => {
+  const dayButtons = {};
+
+  // Build navbar buttons
+  Object.keys(byDate).sort().forEach(dateKey => {
     const btn = document.createElement("button");
-    btn.textContent = date;
     btn.className = "nav-day-btn";
+
+    const dayDiv = document.createElement("div");
+    dayDiv.textContent = byDate[dateKey].dayName;
+    dayDiv.className = "day-name";
+
+    const monthDiv = document.createElement("div");
+    monthDiv.textContent = byDate[dateKey].monthDay;
+    monthDiv.className = "month-day";
+
+    btn.appendChild(dayDiv);
+    btn.appendChild(monthDiv);
+
     btn.onclick = () => {
-      const dayDiv = document.getElementById("day-" + date.replace(/\//g, "-"));
+      const dayDiv = document.getElementById("day-" + dateKey.replace(/\//g, "-"));
       if (dayDiv) dayDiv.scrollIntoView({ behavior: "smooth", block: "start" });
-      highlightDay(date);
+      highlightDay(dateKey);
     };
+
     navContainer.appendChild(btn);
-    dayButtons[date] = btn;
+    dayButtons[dateKey] = btn;
   });
 
-  function highlightDay(date) {
+  function highlightDay(dateKey) {
     Object.keys(dayButtons).forEach(d => dayButtons[d].classList.remove("active"));
-    if (dayButtons[date]) dayButtons[date].classList.add("active");
+    if (dayButtons[dateKey]) dayButtons[dateKey].classList.add("active");
   }
 
   // Render each day
-  Object.keys(byDate).sort().forEach(date => {
+  Object.keys(byDate).sort().forEach(dateKey => {
     const dayDiv = document.createElement("div");
     dayDiv.className = "day-block";
-    dayDiv.id = "day-" + date.replace(/\//g, "-");
-    dayDiv.innerHTML = `<div class='day-title'>${formatShowDateForDisplay(date)}</div>`;
+    dayDiv.id = "day-" + dateKey.replace(/\//g, "-");
+    dayDiv.innerHTML = `<div class='day-title'>${formatShowDateForDisplay(dateKey)}</div>`;
 
-    const runs = byDate[date];
+    const runs = byDate[dateKey].rows;
     const groups = {};
 
-    // Group by show start + show + host
     runs.forEach(run => {
       const key = `${run["Show Start (Eastern)"]}|${run["Show"]}|${run["Host"]}`;
       if (!groups[key]) groups[key] = [];
@@ -119,12 +132,10 @@ async function renderSchedule() {
         const showTemplate = document.getElementById("show-template");
         const clone = document.importNode(showTemplate.content, true);
 
-        // Set logo
         const img = clone.querySelector(".show-logo");
         img.src = resolveLogo(showName);
         img.onerror = () => { img.src = "Logos/GDQ Logo.png"; };
 
-        // Layout: logo left, time top right, host bottom right
         const info = clone.querySelector(".show-info");
         info.innerHTML = `
           <span class="show-time">${formatShowStart(rawStart)}</span>
@@ -140,7 +151,6 @@ async function renderSchedule() {
         clone.querySelector(".show-header").style.alignItems = "center";
         clone.querySelector(".show-time").style.color = "#ffffff";
 
-        // Add sticky header row for runs
         const runHeader = document.createElement("div");
         runHeader.className = "run-header-row";
         runHeader.innerHTML = `
@@ -150,7 +160,6 @@ async function renderSchedule() {
         `;
         clone.querySelector(".run-container").appendChild(runHeader);
 
-        // Add runs
         groups[key].forEach(run => {
           const runTemplate = document.getElementById("run-template");
           const runClone = document.importNode(runTemplate.content, true);
