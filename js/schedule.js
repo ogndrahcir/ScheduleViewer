@@ -15,37 +15,19 @@ async function loadSchedule() {
 }
 
 // -------------------------------------------------------------
-// DST-aware Eastern offset for a given date
-// -------------------------------------------------------------
-function getEasternOffset(date) {
-  // Returns offset in hours: -5 for EST, -4 for EDT
-  const nyTime = new Date(date).toLocaleString("en-US", { timeZone: "America/New_York" });
-  const d = new Date(nyTime);
-  const offsetMinutes = d.getTimezoneOffset(); // minutes behind UTC
-  return -offsetMinutes / 60;
-}
-
-// Convert Eastern → UTC → target GMT offset
-function adjustFromEastern(rawDate, targetOffset) {
-  if (!rawDate) return null;
-  const d = new Date(rawDate);
-  const easternOffset = getEasternOffset(d); // EST or EDT
-  const utcTime = d.getTime() - easternOffset * 3600 * 1000;
-  return new Date(utcTime + targetOffset * 3600 * 1000);
-}
-
-// -------------------------------------------------------------
-// Formatting functions
+// Time formatting (DST-aware Eastern time)
 // -------------------------------------------------------------
 function formatShowDate(rawDate, offsetHours = 0) {
-  const d = adjustFromEastern(rawDate, offsetHours);
-  if (!d) return "";
+  if (!rawDate) return "";
+  const d = new Date(rawDate);
+  d.setHours(d.getHours() + offsetHours);
   return d.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
 function formatShowStart(rawStart, offsetHours = 0) {
-  const d = adjustFromEastern(rawStart, offsetHours);
-  if (!d) return "";
+  if (!rawStart) return "";
+  const d = new Date(rawStart);
+  d.setHours(d.getHours() + offsetHours);
   return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
 }
 
@@ -58,14 +40,11 @@ function formatEstimate(rawEstimate) {
 function renderRunners(runnerNames, runnerStreams) {
   const names = runnerNames.split(",").map(s => s.trim());
   const streams = runnerStreams.split(",").map(s => s.trim());
-
-  return names
-    .map((name, i) => {
-      let url = streams[i] || "#";
-      if (!/^https?:\/\//i.test(url)) url = "https://" + url;
-      return `<a href="${url}" target="_blank" class="runner-pill">${name}</a>`;
-    })
-    .join(" ");
+  return names.map((name, i) => {
+    let url = streams[i] || "#";
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+    return `<a href="${url}" target="_blank" class="runner-pill">${name}</a>`;
+  }).join(" ");
 }
 
 // -------------------------------------------------------------
@@ -73,12 +52,11 @@ function renderRunners(runnerNames, runnerStreams) {
 // -------------------------------------------------------------
 function resolveLogo(showName) {
   const formattedName = showName.replace(/[/\\?%*:|"<>]/g, "");
-  const path = `Logos/${formattedName}.png`;
-  return path;
+  return `Logos/${formattedName}.png`;
 }
 
 // -------------------------------------------------------------
-// Build GMT dropdown (−12 to +14)
+// GMT dropdown
 // -------------------------------------------------------------
 const navContainer = document.getElementById("schedule-nav");
 navContainer.style.display = "flex";
@@ -113,58 +91,24 @@ tzSelect.addEventListener("change", () => {
 });
 
 // -------------------------------------------------------------
-// Render schedule
+// Render schedule with templates
 // -------------------------------------------------------------
 async function renderSchedule() {
   const rows = await loadSchedule();
   const byDate = {};
 
+  // Group by adjusted date
   rows.forEach(r => {
     const adjustedDate = formatShowDate(r["Show Date"], forcedGMTOffset);
     if (!byDate[adjustedDate]) byDate[adjustedDate] = [];
     byDate[adjustedDate].push(r);
   });
 
-  const dayButtons = {};
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  let initialDate = null;
-
-  [...navContainer.querySelectorAll("button")].forEach(b => b.remove());
-
-  Object.keys(byDate).sort().forEach(date => {
-    const btn = document.createElement("button");
-    btn.textContent = date;
-    btn.className = "nav-day-btn";
-    btn.onclick = () => {
-      const dayDiv = document.getElementById("day-" + date.replace(/\//g, "-"));
-      if (dayDiv) dayDiv.scrollIntoView({ behavior: "smooth", block: "start" });
-      highlightDay(date);
-    };
-    navContainer.insertBefore(btn, tzSelectWrapper);
-    dayButtons[date] = btn;
-
-    const day = new Date(date);
-    if (!initialDate || (day.getTime() <= today.getTime() && day.getTime() > new Date(initialDate).getTime())) {
-      initialDate = date;
-    }
-  });
-
-  function highlightDay(date) {
-    Object.keys(dayButtons).forEach(d => dayButtons[d].classList.remove("active"));
-    if (dayButtons[date]) dayButtons[date].classList.add("active");
-  }
-
-  if (initialDate) {
-    const dayDiv = document.getElementById("day-" + initialDate.replace(/\//g, "-"));
-    if (dayDiv) {
-      dayDiv.scrollIntoView({ behavior: "auto", block: "start" });
-      highlightDay(initialDate);
-    }
-  }
-
   const container = document.getElementById("schedule");
   container.innerHTML = "";
+
+  const showTemplate = document.getElementById("show-template");
+  const runTemplate = document.getElementById("run-template");
 
   Object.keys(byDate).sort().forEach(date => {
     const dayDiv = document.createElement("div");
@@ -186,39 +130,27 @@ async function renderSchedule() {
       .forEach(key => {
         const [rawStart, showName, hostName] = key.split("|");
 
-        const groupDiv = document.createElement("div");
-        groupDiv.className = "show-group";
-
+        const clone = document.importNode(showTemplate.content, true);
         const logoPath = resolveLogo(showName);
         const fallbackLogo = "Logos/GDQ Logo.png";
 
-        const adjustedTime = formatShowStart(rawStart, forcedGMTOffset);
+        const img = clone.querySelector(".show-logo");
+        img.src = logoPath;
+        img.onerror = () => { img.src = fallbackLogo; };
 
-        groupDiv.innerHTML = `
-          <div class="show-header">
-            <img src="${logoPath}" onerror="this.onerror=null;this.src='${fallbackLogo}'" alt="Logo for ${showName}" class="show-logo">
-            <div class="show-info">
-              <span class="show-time">${adjustedTime}</span>
-              <span class="show-subtitle">Hosted by: ${hostName || "TBA"}</span>
-            </div>
-          </div>
-        `;
+        clone.querySelector(".show-time").textContent = formatShowStart(rawStart, forcedGMTOffset);
+        clone.querySelector(".show-subtitle").textContent = "Hosted by: " + (hostName || "TBA");
 
         groups[key].forEach(run => {
-          const row = document.createElement("div");
-          row.className = "run-row";
-          row.innerHTML = `
-            <div>
-              <div class="game">${run["Game"]}</div>
-              <div class="category">${run["Category"]}</div>
-            </div>
-            <div class="estimate">${formatEstimate(run["Estimate"])}</div>
-            <div class="runner">${renderRunners(run["Runners"], run["Runner Stream"])}</div>
-          `;
-          groupDiv.appendChild(row);
+          const runClone = document.importNode(runTemplate.content, true);
+          runClone.querySelector(".game").textContent = run["Game"];
+          runClone.querySelector(".category").textContent = run["Category"];
+          runClone.querySelector(".estimate").textContent = formatEstimate(run["Estimate"]);
+          runClone.querySelector(".runner").innerHTML = renderRunners(run["Runners"], run["Runner Stream"]);
+          clone.querySelector(".run-container").appendChild(runClone);
         });
 
-        dayDiv.appendChild(groupDiv);
+        dayDiv.appendChild(clone);
       });
 
     container.appendChild(dayDiv);
