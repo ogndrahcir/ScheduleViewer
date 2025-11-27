@@ -30,26 +30,43 @@ h1 {
   z-index: 1000;
 }
 
-.navbar button {
+/* Updated navbar buttons: two-line layout */
+.nav-day-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
-  padding: 6px 12px;
+  width: 80px; /* uniform width for all buttons */
+  padding: 6px 10px;
   background-color: #4b2d7d;
   color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
   white-space: nowrap;
   transition: background-color 0.2s;
+  text-align: center;
 }
 
-.navbar button:hover {
+.nav-day-btn:hover {
   background-color: #633fa0;
 }
 
-.navbar button.active {
+.nav-day-btn.active {
   background-color: #e8e8e8;
   color: #000;
+}
+
+.nav-day-btn .day-name {
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.nav-day-btn .month-day {
+  font-size: 0.75rem;
+  color: #ddd;
+  margin-top: 2px;
 }
 
 /* ============================================================== 
@@ -186,3 +203,4 @@ h1 {
   border-radius: 12px;
   text-decoration: none;
   font-size: 0.9em;
+}
