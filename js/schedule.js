@@ -96,7 +96,10 @@ async function renderSchedule() {
     const dayDiv = document.createElement("div");
     dayDiv.className = "day-block";
     dayDiv.id = "day-" + date.replace(/\//g, "-");
-    dayDiv.innerHTML = `<div class='day-title'>${date}</div>`;
+    const dateObj = new Date(date);
+    const formattedDate = dateObj.toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    dayDiv.innerHTML = `<div class='day-title'>${formattedDate}</div>`;
+
 
     const runs = byDate[date];
     const groups = {};
