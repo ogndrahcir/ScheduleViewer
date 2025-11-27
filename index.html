@@ -12,6 +12,41 @@ body {
   padding: 20px;
 }
 
+.navbar {
+  position: sticky;      /* sticks to top on scroll */
+  top: 0;
+  background-color: #2c1a4d; /* dark purple background */
+  color: #fff;
+  display: flex;
+  overflow-x: auto;      /* horizontal scroll if too many days */
+  padding: 8px 10px;
+  gap: 6px;
+  z-index: 1000;
+}
+
+.navbar button {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  background-color: #4b2d7d;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+
+.navbar button:hover {
+  background-color: #633fa0;
+}
+
+.navbar button.active {
+  background-color: #ffc107; /* highlight current day, optional */
+  color: #000;
+}
+
+  
 .day-block {
   background: #1e1e1e;  /* darker card background */
   padding: 20px;
@@ -55,26 +90,24 @@ body {
   
 .run-row {
   display: grid;
-  grid-template-columns: auto auto 1fr; /* left: game/category, middle: estimate, right: runners */
+  grid-template-columns: 2fr 1fr 2fr; /* left: game, middle: estimate, right: runners */
   align-items: center;
-  padding: 10px 15px;
+  padding: 10px;
   margin-bottom: 8px;
   border-radius: 6px;
-  border: 1px solid #2a2a2a;
+  border: 1px solid #2a2a2a; /* subtle row border */
   background-color: #1a1a1a;
-  gap: 20px; /* space between columns */
-  max-width: 1200px; /* optional, prevents extreme stretching on wide screens */
 }
 
 .run-row:nth-child(even) {
-  background-color: #242424;
+  background-color: #242424; /* alternating row color */
 }
 
 .game {
   font-size: 18px;
   font-weight: bold;
   color: #ffffff;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .category {
@@ -84,17 +117,17 @@ body {
 
 .estimate {
   font-weight: bold;
-  color: #ffffff;
+  color: #ffffff; /* changed from yellow to white */
   text-align: center;
 }
 
 .runner {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-start;
+  justify-content: flex-start; /* keep pills aligned to left in their column */
   gap: 4px;
 }
-  
+
 .runner-pill {
   display: inline-block;
   padding: 3px 10px;
@@ -115,7 +148,10 @@ body {
 
 <body>
 
-<h1>GDQ Hotfix Weekly Schedule</h1>
+<h1>Event Schedule</h1>
+<div id="schedule-nav" class="navbar"></div>
+<div id="schedule"></div>
+
 <div id="schedule"></div>
 
 <script>
@@ -160,7 +196,6 @@ function renderRunners(runnerNames, runnerStreams) {
     return `<a href="${url}" target="_blank" class="runner-pill">${name}</a>`;
   }).join(" ");
 }
-
 async function renderSchedule() {
   const rows = await loadSchedule();
 
@@ -172,12 +207,27 @@ async function renderSchedule() {
     byDate[date].push(r);
   });
 
+  // Build navbar buttons AFTER byDate is populated
+  const navContainer = document.getElementById("schedule-nav");
+  navContainer.innerHTML = ""; // clear old buttons
+
+  Object.keys(byDate).sort().forEach(date => {
+    const btn = document.createElement("button");
+    btn.textContent = date; // you can format like "Mon 11/23" if desired
+    btn.onclick = () => {
+      const dayDiv = document.getElementById("day-" + date.replace(/\//g, "-"));
+      if (dayDiv) dayDiv.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    navContainer.appendChild(btn);
+  });
+
   const container = document.getElementById("schedule");
   container.innerHTML = "";
 
   Object.keys(byDate).sort().forEach(date => {
     const dayDiv = document.createElement("div");
     dayDiv.className = "day-block";
+    dayDiv.id = "day-" + date.replace(/\//g, "-"); // assign ID for scrolling
     dayDiv.innerHTML = `<div class='day-title'>${date}</div>`;
 
     const runs = byDate[date];
@@ -201,10 +251,9 @@ async function renderSchedule() {
       groupDiv.className = "show-group";
       groupDiv.innerHTML = `<div class='show-title'>${startTime} — ${showName}${hostName ? " (" + hostName + ")" : ""}</div>`;
 
-      groups[key].forEach((run, idx) => {
+      groups[key].forEach(run => {
         const row = document.createElement("div");
         row.className = "run-row";
-        // Alternate colors with CSS :nth-child, so no time column
         row.innerHTML = `
           <div>
             <div class="game">${run["Game"]}</div>
