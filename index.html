@@ -51,6 +51,9 @@ body {
 .runner {
   color: #666;
 }
+.estimate {
+  font-weight: bold;
+}
 </style>
 </head>
 
@@ -61,23 +64,48 @@ body {
 
 <script>
 // URL from your Apps Script deployment
-const DATA_URL = "https://script.google.com/macros/s/AKfycbzOJN3k1M7x2lkSls44sugHDBwLkXhIkDmGVaCe1Gn8wznmf_wc50saXF-BbRneAyuG/exec";
+const DATA_URL = "https://script.google.com/macros/s/AKfycbz-aJuovNQ-0_W-2lgbDZK4Erwnlu1vD8H1yNp7Dzpd3G7HlVUkfiOVIa3ZxF6-Q4sX/exec?t=" + new Date().getTime(); // cache-buster
 
-fetch(DATA_URL)
-  .then(r => r.json())
-  .then(data => renderSchedule(data));
+async function loadSchedule() {
+  const response = await fetch(DATA_URL);
+  const data = await response.json();
+  return data;
+}
 
-function renderSchedule(rows) {
+function formatShowDate(rawDate) {
+  if (!rawDate) return "";
+  const d = new Date(rawDate);
+  return d.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
+}
+
+function formatShowStart(rawStart) {
+  if (!rawStart) return "";
+  const d = new Date(rawStart);
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, timeZone: "America/New_York" });
+}
+
+function formatEstimate(rawEstimate) {
+  if (!rawEstimate) return "";
+  const d = new Date(rawEstimate);
+  const h = d.getHours();
+  const m = d.getMinutes();
+  const s = d.getSeconds();
+  return `${h}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+}
+
+async function renderSchedule() {
+  const rows = await loadSchedule();
+
   // Group by date
   const byDate = {};
-
   rows.forEach(r => {
-    const date = r["Show Date"];
+    const date = formatShowDate(r["Show Date"]);
     if (!byDate[date]) byDate[date] = [];
     byDate[date].push(r);
   });
 
   const container = document.getElementById("schedule");
+  container.innerHTML = "";
 
   Object.keys(byDate).sort().forEach(date => {
     const dayDiv = document.createElement("div");
@@ -90,12 +118,12 @@ function renderSchedule(rows) {
       row.className = "run-row";
 
       row.innerHTML = `
-        <div class="time">${run["Show Start (Eastern)"]}</div>
+        <div class="time">${formatShowStart(run["Show Start (Eastern)"])}</div>
         <div>
           <div class="game">${run["Game"]}</div>
           <div class="category">${run["Category"]}</div>
         </div>
-        <div class="estimate">${run["Estimate"]}</div>
+        <div class="estimate">${formatEstimate(run["Estimate"])}</div>
         <div class="runner">${run["Runners"]}</div>
       `;
 
@@ -105,6 +133,9 @@ function renderSchedule(rows) {
     container.appendChild(dayDiv);
   });
 }
+
+// Load schedule on page load
+renderSchedule();
 </script>
 
 </body>
