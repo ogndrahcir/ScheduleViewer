@@ -144,7 +144,7 @@ async function renderSchedule() {
         const runHeader = document.createElement("div");
         runHeader.className = "run-header-row";
         runHeader.innerHTML = `
-          <div class="game">Game / Category</div>
+          <div class="game">Game Info</div>
           <div class="estimate">Estimate</div>
           <div class="runner">Runner(s)</div>
         `;
