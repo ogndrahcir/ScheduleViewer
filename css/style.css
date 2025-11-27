@@ -126,26 +126,23 @@ h1 {
 
 .show-header {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* logo | info */
+  grid-template-columns: auto auto; /* logo | info */
   gap: 20px;
   /* Make the header as tall as 2 run rows */
   /* Assuming each run row has a fixed height, e.g., 60px each */
   height: calc(2 * 60px); /* adjust 60px to your actual run row height */
-  align-items: center;     /* vertically center logo and info */
+       /* vertically center logo and info */
   justify-content: center; /* center the entire grid horizontally */
 }
 
 .show-logo {
   width: 100%;
-  height: 100%;            /* fill the grid row height */
-  object-fit: contain;     /* maintain aspect ratio */
+  height: 100%;
+  align-items: right;
 }
 
 .show-info {
-  display: flex;
-  flex-direction: column;
-  justify-content: center; /* vertical centering within grid row */
-  align-items: center;     /* horizontally center text in its column */
+  align-items: left;     /* horizontally center text in its column */
 }
 
 .show-time {
