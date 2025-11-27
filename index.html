@@ -52,20 +52,50 @@ body {
   font-weight: bold;
   color: #ffcc00;
 }
+  
+.run-row {
+  display: flex;               /* easier alignment */
+  flex-direction: column;      /* stack info vertically */
+  align-items: center;         /* center content */
+  background-color: #1a1a1a;   /* base dark row color */
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  border: 1px solid #2a2a2a; /* subtle border to demarcate rows */
+  transition: background-color 0.2s;
+}
+
+.run-row:nth-child(even) {
+  background-color: #242424; /* slightly lighter for alternating effect */
+}
+
 .game {
   font-size: 18px;
+  font-weight: bold;
   color: #ffffff;
+  text-align: center;
+  margin-bottom: 4px;
 }
+
 .category {
   color: #aaaaaa;
+  text-align: center;
+  margin-bottom: 4px;
 }
-.runner {
-  color: #cccccc;
-}
+
 .estimate {
   font-weight: bold;
   color: #ffcc00;
+  margin-bottom: 4px;
 }
+
+.runner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px; /* space between pills */
+}
+
 
 .runner-pill {
   display: inline-block;
@@ -91,7 +121,6 @@ body {
 <div id="schedule"></div>
 
 <script>
-// URL from your Apps Script deployment
 const DATA_URL = "https://script.google.com/macros/s/AKfycbz-aJuovNQ-0_W-2lgbDZK4Erwnlu1vD8H1yNp7Dzpd3G7HlVUkfiOVIa3ZxF6-Q4sX/exec?t=" + new Date().getTime();
 
 async function loadSchedule() {
@@ -127,14 +156,12 @@ function renderRunners(runnerNames, runnerStreams) {
 
   return names.map((name, i) => {
     let url = streams[i] || "#";
-    // Make sure URL starts with http:// or https://
     if (!/^https?:\/\//i.test(url)) {
       url = "https://" + url;
     }
     return `<a href="${url}" target="_blank" class="runner-pill">${name}</a>`;
   }).join(" ");
 }
-
 
 async function renderSchedule() {
   const rows = await loadSchedule();
@@ -176,15 +203,13 @@ async function renderSchedule() {
       groupDiv.className = "show-group";
       groupDiv.innerHTML = `<div class='show-title'>${startTime} — ${showName}${hostName ? " (" + hostName + ")" : ""}</div>`;
 
-      groups[key].forEach(run => {
+      groups[key].forEach((run, idx) => {
         const row = document.createElement("div");
         row.className = "run-row";
+        // Alternate colors with CSS :nth-child, so no time column
         row.innerHTML = `
-          <div class="time">${startTime}</div>
-          <div>
-            <div class="game">${run["Game"]}</div>
-            <div class="category">${run["Category"]}</div>
-          </div>
+          <div class="game">${run["Game"]}</div>
+          <div class="category">${run["Category"]}</div>
           <div class="estimate">${formatEstimate(run["Estimate"])}</div>
           <div class="runner">${renderRunners(run["Runners"], run["Runner Stream"])}</div>
         `;
