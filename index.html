@@ -176,9 +176,7 @@ function formatShowStart(rawStart) {
   const d = new Date(rawStart);
   const tz = forcedTimezone;
   const options = { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, timeZone: tz };
-  const timeStr = d.toLocaleTimeString("en-US", options);
-  const abbr = d.toLocaleTimeString("en-US", { timeZone: tz, timeZoneName: "short" }).split(' ')[2] || tz;
-  return `${timeStr} ${abbr}`;
+  return d.toLocaleTimeString("en-US", options); // Only HH:MM:SS AM/PM, no timezone abbreviation
 }
 
 function formatEstimate(rawEstimate) {
@@ -346,7 +344,6 @@ async function renderSchedule() {
 
 renderSchedule();
 </script>
-
   
 </body>
 </html>
