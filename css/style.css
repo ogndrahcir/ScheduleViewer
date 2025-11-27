@@ -126,19 +126,17 @@ h1 {
 }
 
 .show-header {
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  align-items: center; /* center items vertically instead of stretching */
-  gap: 20px;
+  display: flex;                 /* flex container */
+  justify-content: center;       /* center items horizontally */
+  align-items: center;           /* center items vertically */
+  gap: 20px;                     /* space between logo and text */
   margin-bottom: 10px;
 }
 
 .show-logo {
-  width: 100%;        
-  height: auto;       /* let it keep its aspect ratio */
-  max-height: 2.5em;  /* slightly taller than text */
+  height: auto;
+  max-height: 2.5em;            /* slightly taller than text */
   object-fit: contain;
-  justify-self: end;
 }
 
 .show-info {
@@ -147,6 +145,7 @@ h1 {
   justify-content: center;
   align-items: center;
 }
+
 
 .show-time {
   font-size: 2rem;
