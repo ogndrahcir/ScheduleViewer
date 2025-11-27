@@ -12,17 +12,10 @@ async function loadSchedule() {
 // -------------------------------------------------------------
 // Formatting functions
 // -------------------------------------------------------------
-function formatShowDateForDisplay(rawDate) {
+function formatShowDate(rawDate) {
   if (!rawDate) return "";
   const d = new Date(rawDate);
-  const options = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
-  return d.toLocaleDateString("en-US", options);
-}
-
-function formatShowDateForNavbar(rawDate) {
-  if (!rawDate) return "";
-  const d = new Date(rawDate);
-  return d.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
+  return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 }
 
 function formatShowStart(rawStart) {
@@ -47,9 +40,6 @@ function renderRunners(runnerNames, runnerStreams) {
   }).join(" ");
 }
 
-// -------------------------------------------------------------
-// Resolve logo URL
-// -------------------------------------------------------------
 function resolveLogo(showName) {
   const formattedName = showName.replace(/[/\\?%*:|"<>]/g, "");
   return `Logos/${formattedName}.png`;
@@ -64,48 +54,27 @@ async function renderSchedule() {
 
   // Group rows by date
   rows.forEach(r => {
-    const date = formatShowDateForNavbar(r["Show Date"]);
-    if (!byDate[date]) byDate[date] = [];
-    byDate[date].push(r);
+    const adjustedDate = formatShowDate(r["Show Date"]);
+    if (!byDate[adjustedDate]) byDate[adjustedDate] = [];
+    byDate[adjustedDate].push(r);
   });
 
-  const navContainer = document.getElementById("schedule-nav");
   const container = document.getElementById("schedule");
   container.innerHTML = "";
 
-  // Build navbar buttons (keep MM/DD/YYYY format)
-  const dayButtons = {};
-  [...navContainer.querySelectorAll("button")].forEach(b => b.remove());
+  const showTemplate = document.getElementById("show-template");
+  const runTemplate = document.getElementById("run-template");
 
-  Object.keys(byDate).sort().forEach(date => {
-    const btn = document.createElement("button");
-    btn.textContent = date;
-    btn.className = "nav-day-btn";
-    btn.onclick = () => {
-      const dayDiv = document.getElementById("day-" + date.replace(/\//g, "-"));
-      if (dayDiv) dayDiv.scrollIntoView({ behavior: "smooth", block: "start" });
-      highlightDay(date);
-    };
-    navContainer.appendChild(btn);
-    dayButtons[date] = btn;
-  });
-
-  function highlightDay(date) {
-    Object.keys(dayButtons).forEach(d => dayButtons[d].classList.remove("active"));
-    if (dayButtons[date]) dayButtons[date].classList.add("active");
-  }
-
-  // Render each day
   Object.keys(byDate).sort().forEach(date => {
     const dayDiv = document.createElement("div");
     dayDiv.className = "day-block";
-    dayDiv.id = "day-" + date.replace(/\//g, "-");
-    dayDiv.innerHTML = `<div class='day-title'>${formatShowDateForDisplay(date)}</div>`;
+    dayDiv.id = "day-" + date.replace(/\s+/g, "-");
+    dayDiv.innerHTML = `<div class='day-title'>${date}</div>`;
 
     const runs = byDate[date];
-    const groups = {};
 
-    // Group by show start + show + host
+    // Group by show
+    const groups = {};
     runs.forEach(run => {
       const key = `${run["Show Start (Eastern)"]}|${run["Show"]}|${run["Host"]}`;
       if (!groups[key]) groups[key] = [];
@@ -113,52 +82,39 @@ async function renderSchedule() {
     });
 
     Object.keys(groups)
-      .sort((a,b) => new Date(a.split("|")[0]) - new Date(b.split("|")[0]))
+      .sort((a, b) => new Date(a.split("|")[0]) - new Date(b.split("|")[0]))
       .forEach(key => {
         const [rawStart, showName, hostName] = key.split("|");
-        const showTemplate = document.getElementById("show-template");
         const clone = document.importNode(showTemplate.content, true);
 
-        // Set logo
+        // Logo
         const img = clone.querySelector(".show-logo");
         img.src = resolveLogo(showName);
         img.onerror = () => { img.src = "Logos/GDQ Logo.png"; };
 
-        // Layout: logo left, time top right, host bottom right
-        const info = clone.querySelector(".show-info");
-        info.innerHTML = `
-          <span class="show-time">${formatShowStart(rawStart)}</span>
-          <span class="show-subtitle">Hosted by: ${hostName || "TBA"}</span>
-        `;
-        info.style.display = "flex";
-        info.style.flexDirection = "column";
-        info.style.alignItems = "center";
+        // Time + Host
+        clone.querySelector(".show-time").textContent = formatShowStart(rawStart);
+        clone.querySelector(".show-subtitle").textContent = "Hosted by: " + (hostName || "TBA");
 
-        clone.querySelector(".show-header").style.display = "grid";
-        clone.querySelector(".show-header").style.gridTemplateColumns = "120px 1fr";
-        clone.querySelector(".show-header").style.justifyContent = "center";
-        clone.querySelector(".show-header").style.alignItems = "center";
-        clone.querySelector(".show-time").style.color = "#ffffff";
+        const runContainer = clone.querySelector(".run-container");
 
-        // Add sticky header row for runs
-        const runHeader = document.createElement("div");
-        runHeader.className = "run-header-row";
-        runHeader.innerHTML = `
-          <div class="game">Game / Category</div>
+        // Append a single header row per show
+        const headerRow = document.createElement("div");
+        headerRow.className = "run-header-row";
+        headerRow.innerHTML = `
+          <div class="game">Game Info</div>
           <div class="estimate">Estimate</div>
-          <div class="runner">Runner(s)</div>
+          <div class="runner">Runner</div>
         `;
-        clone.querySelector(".run-container").appendChild(runHeader);
+        runContainer.appendChild(headerRow);
 
-        // Add runs
+        // Append actual runs
         groups[key].forEach(run => {
-          const runTemplate = document.getElementById("run-template");
           const runClone = document.importNode(runTemplate.content, true);
-          runClone.querySelector(".game").textContent = run["Game"];
-          runClone.querySelector(".category").textContent = run["Category"];
+          runClone.querySelector(".game").textContent = `${run["Game"]} (${run["Category"]})`;
           runClone.querySelector(".estimate").textContent = formatEstimate(run["Estimate"]);
           runClone.querySelector(".runner").innerHTML = renderRunners(run["Runners"], run["Runner Stream"]);
-          clone.querySelector(".run-container").appendChild(runClone);
+          runContainer.appendChild(runClone);
         });
 
         dayDiv.appendChild(clone);
