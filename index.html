@@ -174,18 +174,13 @@ body {
 <div id="schedule-nav" class="navbar"></div>
 <div id="schedule"></div>
 
-<script> 
+<script>
 const DATA_URL = "https://script.google.com/macros/s/AKfycbz-aJuovNQ-0_W-2lgbDZK4Erwnlu1vD8H1yNp7Dzpd3G7HlVUkfiOVIa3ZxF6-Q4sX/exec?t=" + new Date().getTime();
 
 // -------------------------------------------------------------
 // Initial GMT offset based on user's local time
 // -------------------------------------------------------------
 let forcedGMTOffset = new Date().getTimezoneOffset() / -60; // in hours
-
-// -------------------------------------------------------------
-// Eastern offset (raw data is in Eastern Time)
-// -------------------------------------------------------------
-const EASTERN_OFFSET = -5; // default EST, will adjust for EDT if needed
 
 // -------------------------------------------------------------
 // Load data
@@ -197,16 +192,28 @@ async function loadSchedule() {
 }
 
 // -------------------------------------------------------------
-// Formatting functions
+// DST-aware Eastern offset for a given date
 // -------------------------------------------------------------
+function getEasternOffset(date) {
+  // Returns offset in hours: -5 for EST, -4 for EDT
+  const nyTime = new Date(date).toLocaleString("en-US", { timeZone: "America/New_York" });
+  const d = new Date(nyTime);
+  const offsetMinutes = d.getTimezoneOffset(); // minutes behind UTC
+  return -offsetMinutes / 60;
+}
+
+// Convert Eastern → UTC → target GMT offset
 function adjustFromEastern(rawDate, targetOffset) {
   if (!rawDate) return null;
   const d = new Date(rawDate);
-  // Convert Eastern → UTC → target GMT
-  const utcTime = d.getTime() - EASTERN_OFFSET * 3600*1000;
-  return new Date(utcTime + targetOffset*3600*1000);
+  const easternOffset = getEasternOffset(d); // EST or EDT
+  const utcTime = d.getTime() - easternOffset * 3600 * 1000;
+  return new Date(utcTime + targetOffset * 3600 * 1000);
 }
 
+// -------------------------------------------------------------
+// Formatting functions
+// -------------------------------------------------------------
 function formatShowDate(rawDate, offsetHours = 0) {
   const d = adjustFromEastern(rawDate, offsetHours);
   if (!d) return "";
@@ -216,8 +223,7 @@ function formatShowDate(rawDate, offsetHours = 0) {
 function formatShowStart(rawStart, offsetHours = 0) {
   const d = adjustFromEastern(rawStart, offsetHours);
   if (!d) return "";
-  const options = { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true };
-  return d.toLocaleTimeString("en-US", options);
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
 }
 
 function formatEstimate(rawEstimate) {
@@ -270,20 +276,17 @@ tzSelectWrapper.innerHTML = `
 navContainer.appendChild(tzSelectWrapper);
 
 const tzSelect = document.getElementById("timezone-select");
-
-// GMT offsets −12 → +14
 for (let i = -12; i <= 14; i++) {
   const opt = document.createElement("option");
   opt.value = i;
   opt.textContent = i >= 0 ? `GMT+${i}` : `GMT${i}`;
   tzSelect.appendChild(opt);
 }
-
 tzSelect.value = forcedGMTOffset;
 
 tzSelect.addEventListener("change", () => {
   forcedGMTOffset = parseInt(tzSelect.value);
-  renderSchedule(); // rebuild schedule with new offset
+  renderSchedule();
 });
 
 // -------------------------------------------------------------
@@ -293,14 +296,12 @@ async function renderSchedule() {
   const rows = await loadSchedule();
   const byDate = {};
 
-  // Group rows by adjusted date
   rows.forEach(r => {
     const adjustedDate = formatShowDate(r["Show Date"], forcedGMTOffset);
     if (!byDate[adjustedDate]) byDate[adjustedDate] = [];
     byDate[adjustedDate].push(r);
   });
 
-  // Build day navigation buttons
   const dayButtons = {};
   const today = new Date();
   today.setHours(0,0,0,0);
@@ -368,7 +369,6 @@ async function renderSchedule() {
         const logoPath = resolveLogo(showName);
         const fallbackLogo = "Logos/GDQ Logo.png";
 
-        // Adjusted time for this GMT offset
         const adjustedTime = formatShowStart(rawStart, forcedGMTOffset);
 
         groupDiv.innerHTML = `
