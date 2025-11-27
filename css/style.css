@@ -128,7 +128,7 @@ h1 {
 /* -------- DESKTOP (default) -------- */
 .show-header {
   display: grid;
-  grid-template-columns: auto minmax(0, 300px) auto auto;
+  grid-template-columns: auto auto auto auto;
   grid-template-areas: ". logo info .";
   gap: 20px;
   height: 120px;        /* fixed header height */
@@ -138,10 +138,11 @@ h1 {
 
 .show-logo {
   grid-area: logo;
-  width: auto;          /* natural width */
-  height: 100%;         /* fill the header height */
-  max-width: 100%;      /* cannot exceed column width */
-  object-fit: contain;   /* preserve aspect ratio */
+  width: 100%;          /* scale to fill column width */
+  height: 100%;         /* scale to fill header height */
+  max-width: 100%;      /* never exceed column width */
+  max-height: 100%;     /* never exceed header height */
+  object-fit: contain;  /* preserve aspect ratio */
   object-position: right;
   justify-self: end;
   display: block;
@@ -195,10 +196,10 @@ h1 {
   }
 
   .show-logo {
-    grid-area: logo;
-    width: auto;
+    width: 100%;        /* fill mobile header width */
     height: 100%;       /* fill header height */
-    max-width: 100%;
+    max-width: 100%;    /* cannot exceed column/header */
+    max-height: 100%;   /* cannot exceed header height */
     object-fit: contain;
     object-position: center;
     justify-self: center;
