@@ -155,8 +155,8 @@ body {
 <script>
 const DATA_URL = "https://script.google.com/macros/s/AKfycbz-aJuovNQ-0_W-2lgbDZK4Erwnlu1vD8H1yNp7Dzpd3G7HlVUkfiOVIa3ZxF6-Q4sX/exec?t=" + new Date().getTime();
 
-let useLocalTimezone = false;
-let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // default
+let selectedTimezone = userTimezone; // initial timezone for display
 
 async function loadSchedule() {
   const response = await fetch(DATA_URL);
@@ -173,10 +173,9 @@ function formatShowDate(rawDate) {
 function formatShowStart(rawStart) {
   if (!rawStart) return "";
   const d = new Date(rawStart);
-  const tz = useLocalTimezone ? userTimezone : "America/New_York";
-  const options = { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, timeZone: tz };
+  const options = { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, timeZone: selectedTimezone };
   const timeStr = d.toLocaleTimeString("en-US", options);
-  const abbr = d.toLocaleTimeString("en-US", { timeZone: tz, timeZoneName: "short" }).split(' ')[2] || (tz === "America/New_York" ? "EST/EDT" : tz);
+  const abbr = d.toLocaleTimeString("en-US", { timeZoneName: "short", timeZone: selectedTimezone }).split(' ')[2] || selectedTimezone;
   return `${timeStr} ${abbr}`;
 }
 
@@ -220,7 +219,6 @@ async function renderSchedule() {
   const dayButtons = {};
   const today = new Date();
   today.setHours(0,0,0,0);
-
   let initialDate = null;
 
   Object.keys(byDate).sort().forEach(date => {
@@ -244,32 +242,40 @@ async function renderSchedule() {
     }
   });
 
-  // Timezone toggle on right
-  const tzToggle = document.createElement("div");
-  tzToggle.style.marginLeft = "20px";
-  tzToggle.style.display = "flex";
-  tzToggle.style.alignItems = "center";
-  tzToggle.innerHTML = `
+  // Timezone dropdown
+  const tzSelectDiv = document.createElement("div");
+  tzSelectDiv.style.marginLeft = "20px";
+  tzSelectDiv.style.display = "flex";
+  tzSelectDiv.style.alignItems = "center";
+  tzSelectDiv.innerHTML = `
     <label style="font-size:0.8rem; color:#fff; cursor:pointer;">
-      <input type="checkbox" id="timezone-toggle"> Use my timezone (<span id="tz-abbr">EST</span>)
+      Timezone:
+      <select id="timezone-select" style="margin-left:5px; font-size:0.8rem; padding:2px 5px;">
+      </select>
     </label>
   `;
-  navContainer.appendChild(tzToggle);
+  navContainer.appendChild(tzSelectDiv);
 
-  const toggleInput = document.getElementById("timezone-toggle");
-  const tzAbbrSpan = document.getElementById("tz-abbr");
-  toggleInput.addEventListener("change", () => {
-    useLocalTimezone = toggleInput.checked;
-    renderSchedule();
+  const tzSelect = document.getElementById("timezone-select");
+
+  // populate common timezones
+  const commonTimezones = [
+    "America/New_York","America/Chicago","America/Denver","America/Los_Angeles",
+    "Europe/London","Europe/Berlin","Asia/Tokyo","Australia/Sydney"
+  ];
+
+  commonTimezones.forEach(tz => {
+    const opt = document.createElement("option");
+    opt.value = tz;
+    opt.textContent = tz;
+    if (tz === selectedTimezone) opt.selected = true;
+    tzSelect.appendChild(opt);
   });
 
-  function updateTZAbbr() {
-    const d = new Date();
-    const tz = useLocalTimezone ? userTimezone : "America/New_York";
-    tzAbbrSpan.textContent = d.toLocaleTimeString('en-US', { timeZoneName: 'short', timeZone: tz }).split(' ')[2] || tz;
-  }
-
-  updateTZAbbr();
+  tzSelect.addEventListener("change", () => {
+    selectedTimezone = tzSelect.value;
+    renderSchedule();
+  });
 
   function highlightDay(date) {
     Object.keys(dayButtons).forEach(d => dayButtons[d].classList.remove("active"));
@@ -340,12 +346,11 @@ async function renderSchedule() {
 
     container.appendChild(dayDiv);
   });
-
-  updateTZAbbr();
 }
 
 renderSchedule();
 </script>
+
 
 </body>
 </html>
