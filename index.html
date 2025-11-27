@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -24,7 +24,7 @@ body {
   font-size: 24px;
   font-weight: bold;
   margin-bottom: 15px;
-  border-bottom: 2px solid #333; /* dark divider */
+  border-bottom: 2px solid #333;
   padding-bottom: 5px;
   color: #ffffff;
 }
@@ -50,7 +50,7 @@ body {
 
 .time {
   font-weight: bold;
-  color: #ffcc00; /* highlight times */
+  color: #ffcc00;
 }
 .game {
   font-size: 18px;
@@ -66,8 +66,21 @@ body {
   font-weight: bold;
   color: #ffcc00;
 }
-</style>
 
+.runner-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  margin: 2px;
+  background-color: #ffcc00;
+  color: #000;
+  border-radius: 12px;
+  text-decoration: none;
+  font-size: 0.9em;
+}
+.runner-pill:hover {
+  background-color: #ffaa00;
+}
+</style>
 </head>
 
 <body>
@@ -77,7 +90,7 @@ body {
 
 <script>
 // URL from your Apps Script deployment
-const DATA_URL = "https://script.google.com/macros/s/AKfycbz-aJuovNQ-0_W-2lgbDZK4Erwnlu1vD8H1yNp7Dzpd3G7HlVUkfiOVIa3ZxF6-Q4sX/exec?t=" + new Date().getTime(); // cache-buster
+const DATA_URL = "https://script.google.com/macros/s/AKfycbz-aJuovNQ-0_W-2lgbDZK4Erwnlu1vD8H1yNp7Dzpd3G7HlVUkfiOVIa3ZxF6-Q4sX/exec?t=" + new Date().getTime();
 
 async function loadSchedule() {
   const response = await fetch(DATA_URL);
@@ -106,6 +119,16 @@ function formatEstimate(rawEstimate) {
   return `${h}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
 }
 
+function renderRunners(runnerNames, runnerStreams) {
+  const names = runnerNames.split(",").map(s => s.trim());
+  const streams = runnerStreams.split(",").map(s => s.trim());
+
+  return names.map((name, i) => {
+    const url = streams[i] || "#";
+    return `<a href="${url}" target="_blank" class="runner-pill">${name}</a>`;
+  }).join(" ");
+}
+
 async function renderSchedule() {
   const rows = await loadSchedule();
 
@@ -123,7 +146,6 @@ async function renderSchedule() {
   Object.keys(byDate).sort().forEach(date => {
     const dayDiv = document.createElement("div");
     dayDiv.className = "day-block";
-
     dayDiv.innerHTML = `<div class='day-title'>${date}</div>`;
 
     const runs = byDate[date];
@@ -136,8 +158,12 @@ async function renderSchedule() {
       groups[key].push(run);
     });
 
-    // Render each group
-    Object.keys(groups).sort().forEach(key => {
+    // Render each group sorted chronologically
+    Object.keys(groups).sort((a, b) => {
+      const startA = new Date(`1970-01-01T${a.split("|")[0]}`);
+      const startB = new Date(`1970-01-01T${b.split("|")[0]}`);
+      return startA - startB;
+    }).forEach(key => {
       const [startTime, showName, hostName] = key.split("|");
       const groupDiv = document.createElement("div");
       groupDiv.className = "show-group";
@@ -153,7 +179,7 @@ async function renderSchedule() {
             <div class="category">${run["Category"]}</div>
           </div>
           <div class="estimate">${formatEstimate(run["Estimate"])}</div>
-          <div class="runner">${run["Runners"]}</div>
+          <div class="runner">${renderRunners(run["Runners"], run["Runner Stream"])}</div>
         `;
         groupDiv.appendChild(row);
       });
