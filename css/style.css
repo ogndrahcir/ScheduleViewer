@@ -128,11 +128,8 @@ h1 {
   display: grid;
   grid-template-columns: auto auto; /* logo | info */
   gap: 20px;
-  /* Make the header as tall as 2 run rows */
-  /* Assuming each run row has a fixed height, e.g., 60px each */
-  height: calc(2 * 60px); /* adjust 60px to your actual run row height */
-       /* vertically center logo and info */
-  justify-content: center; /* center the entire grid horizontally */
+  height: calc(2 * 60px); 
+  justify-content: center; 
 }
 
 .show-logo {
