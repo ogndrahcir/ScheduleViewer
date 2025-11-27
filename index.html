@@ -8,41 +8,46 @@
 
 <body>
 
-  <h1>Weekly GDQ Hotfix Schedule</h1>
+<h1>Weekly GDQ Hotfix Schedule</h1>
 
-  <!-- Navbar for day buttons -->
-  <div id="schedule-nav" class="navbar"></div>
+<!-- Navbar / Day Navigation -->
+<div id="schedule-nav" class="navbar"></div>
 
-  <!-- Schedule container -->
-  <div id="schedule"></div>
+<!-- Schedule container -->
+<div id="schedule"></div>
 
-  <!-- Templates -->
-  <template id="show-template">
-    <div class="show-group">
-      <div class="show-header">
-        <img class="show-logo" alt="Show logo">
-        <div class="show-info">
-          <span class="show-time"></span>
-          <span class="show-subtitle"></span>
-        </div>
+<!-- Templates -->
+<template id="show-template">
+  <div class="show-group">
+    <div class="show-header">
+      <img class="show-logo" alt="Show logo">
+      <div class="show-info">
+        <span class="show-time"></span>
+        <span class="show-subtitle"></span>
       </div>
-      <div class="run-container"></div>
     </div>
-  </template>
-
-  <template id="run-template">
-    <div class="run-row">
-      <div>
-        <div class="game"></div>
-        <div class="category"></div>
-      </div>
-      <div class="estimate"></div>
-      <div class="runner"></div>
+    <!-- Run Header (sticky) -->
+    <div class="run-header-row">
+      <div>Game Info</div>
+      <div>Estimate</div>
+      <div>Runners</div>
     </div>
-  </template>
+    <div class="run-container"></div>
+  </div>
+</template>
 
-  <!-- Schedule JS -->
-  <script src="js/schedule.js"></script>
+<template id="run-template">
+  <div class="run-row">
+    <div>
+      <div class="game"></div>
+      <div class="category"></div>
+    </div>
+    <div class="estimate"></div>
+    <div class="runner"></div>
+  </div>
+</template>
+
+<script src="js/schedule.js"></script>
 
 </body>
 </html>
