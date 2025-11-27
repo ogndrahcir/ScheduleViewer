@@ -83,8 +83,9 @@ h1 {
 
 .show-header {
   display: flex;
-  align-items: center;
-  gap: 20px; /* space between logo and info */
+  flex-direction: column;      /* stack logo, time, host vertically */
+  align-items: center;         /* center everything horizontally */
+  gap: 10px;                   /* space between logo, time, host */
   margin-bottom: 10px;
 }
 
@@ -96,13 +97,13 @@ h1 {
 .show-info {
   display: flex;
   flex-direction: column;
-  align-items: flex-start; /* left-align the text */
+  align-items: center;         /* center the text under the logo */
 }
 
 .show-time {
   font-size: 2rem;  /* large start time */
   font-weight: bold;
-  color: #ffcc00;
+  color: #ffffff;   /* changed from yellow to white */
 }
 
 .show-subtitle {
