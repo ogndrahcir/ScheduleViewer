@@ -2,42 +2,47 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Schedule</title>
+  <title>Weekly GDQ Hotfix Schedule</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
 
-<h1>Weekly GDQ Hotfix Schedule</h1>
-<div id="schedule-nav" class="navbar"></div>
-<div id="schedule"></div>
+  <h1>Weekly GDQ Hotfix Schedule</h1>
 
-<!-- Templates -->
-<template id="show-template">
-  <div class="show-group">
-    <div class="show-header">
-      <img class="show-logo" alt="Show logo">
-      <div class="show-info">
-        <span class="show-time"></span>
-        <span class="show-subtitle"></span>
+  <!-- Navbar for day buttons -->
+  <div id="schedule-nav" class="navbar"></div>
+
+  <!-- Schedule container -->
+  <div id="schedule"></div>
+
+  <!-- Templates -->
+  <template id="show-template">
+    <div class="show-group">
+      <div class="show-header">
+        <img class="show-logo" alt="Show logo">
+        <div class="show-info">
+          <span class="show-time"></span>
+          <span class="show-subtitle"></span>
+        </div>
       </div>
+      <div class="run-container"></div>
     </div>
-    <div class="run-container"></div>
-  </div>
-</template>
+  </template>
 
-<template id="run-template">
-  <div class="run-row">
-    <div>
-      <div class="game"></div>
-      <div class="category"></div>
+  <template id="run-template">
+    <div class="run-row">
+      <div>
+        <div class="game"></div>
+        <div class="category"></div>
+      </div>
+      <div class="estimate"></div>
+      <div class="runner"></div>
     </div>
-    <div class="estimate"></div>
-    <div class="runner"></div>
-  </div>
-</template>
+  </template>
 
-<script src="js/schedule.js"></script>
+  <!-- Schedule JS -->
+  <script src="js/schedule.js"></script>
 
 </body>
 </html>
