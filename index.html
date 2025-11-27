@@ -155,8 +155,11 @@ body {
 <script>
 const DATA_URL = "https://script.google.com/macros/s/AKfycbz-aJuovNQ-0_W-2lgbDZK4Erwnlu1vD8H1yNp7Dzpd3G7HlVUkfiOVIa3ZxF6-Q4sX/exec?t=" + new Date().getTime();
 
-let forcedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // default: user's timezone
+let forcedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+// -------------------------------------------------------------
+// Load data
+// -------------------------------------------------------------
 async function loadSchedule() {
   const response = await fetch(DATA_URL);
   const data = await response.json();
@@ -179,24 +182,25 @@ function formatShowStart(rawStart) {
 function formatEstimate(rawEstimate) {
   if (!rawEstimate) return "";
   const d = new Date(rawEstimate);
-  const h = d.getHours();
-  const m = d.getMinutes();
-  const s = d.getSeconds();
-  return `${h}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+  return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
 }
 
 function renderRunners(runnerNames, runnerStreams) {
   const names = runnerNames.split(",").map(s => s.trim());
   const streams = runnerStreams.split(",").map(s => s.trim());
 
-  return names.map((name, i) => {
-    let url = streams[i] || "#";
-    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
-    return `<a href="${url}" target="_blank" class="runner-pill">${name}</a>`;
-  }).join(" ");
+  return names
+    .map((name, i) => {
+      let url = streams[i] || "#";
+      if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+      return `<a href="${url}" target="_blank" class="runner-pill">${name}</a>`;
+    })
+    .join(" ");
 }
 
-// Build timezone dropdown **once**, outside of renderSchedule
+// -------------------------------------------------------------
+// Timezone dropdown (created once)
+// -------------------------------------------------------------
 const navContainer = document.getElementById("schedule-nav");
 navContainer.style.display = "flex";
 navContainer.style.justifyContent = "center";
@@ -209,7 +213,7 @@ tzSelectWrapper.style.display = "flex";
 tzSelectWrapper.style.alignItems = "center";
 tzSelectWrapper.innerHTML = `
   <label style="font-size:0.8rem; color:#fff; cursor:pointer;">
-    Timezone: 
+    Timezone:
     <select id="timezone-select"></select>
   </label>
 `;
@@ -217,6 +221,7 @@ navContainer.appendChild(tzSelectWrapper);
 
 const tzSelect = document.getElementById("timezone-select");
 const allTimezones = Intl.supportedValuesOf("timeZone").sort();
+
 allTimezones.forEach(tz => {
   const opt = document.createElement("option");
   opt.value = tz;
@@ -224,29 +229,39 @@ allTimezones.forEach(tz => {
   tzSelect.appendChild(opt);
 });
 
-// Set default selected
 tzSelect.value = forcedTimezone;
 
 tzSelect.addEventListener("change", () => {
   forcedTimezone = tzSelect.value;
-  updateShowTimes(); // <-- UPDATE ONLY THE TIME, NOT THE WHOLE PAGE
+  updateShowTimes();
 });
 
+// -------------------------------------------------------------
+// Update times on page without reloading schedule
+// -------------------------------------------------------------
 function updateShowTimes() {
-  // Update show start times
   document.querySelectorAll("[data-raw-start]").forEach(span => {
     const raw = span.dataset.rawStart;
     if (!raw) return;
     const d = new Date(raw);
-    const options = { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, timeZone: forcedTimezone };
+    const options = {
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+      timeZone: forcedTimezone
+    };
     span.textContent = d.toLocaleTimeString("en-US", options);
   });
 }
 
+// -------------------------------------------------------------
+// Render entire schedule
+// -------------------------------------------------------------
 async function renderSchedule() {
   const rows = await loadSchedule();
-
   const byDate = {};
+
   rows.forEach(r => {
     const date = formatShowDate(r["Show Date"]);
     if (!byDate[date]) byDate[date] = [];
@@ -255,11 +270,11 @@ async function renderSchedule() {
 
   const dayButtons = {};
   const today = new Date();
-  today.setHours(0,0,0,0);
+  today.setHours(0, 0, 0, 0);
 
   let initialDate = null;
 
-  // Remove old day buttons but keep tz dropdown intact
+  // Remove old nav buttons (but not the timezone dropdown)
   [...navContainer.querySelectorAll("button")].forEach(b => b.remove());
 
   Object.keys(byDate).sort().forEach(date => {
@@ -271,7 +286,7 @@ async function renderSchedule() {
       if (dayDiv) dayDiv.scrollIntoView({ behavior: "smooth", block: "start" });
       highlightDay(date);
     };
-    navContainer.insertBefore(btn, tzSelectWrapper); // add buttons before dropdown
+    navContainer.insertBefore(btn, tzSelectWrapper);
     dayButtons[date] = btn;
 
     const day = new Date(date);
@@ -308,6 +323,7 @@ async function renderSchedule() {
   const container = document.getElementById("schedule");
   container.innerHTML = "";
 
+  // Build each day block
   Object.keys(byDate).sort().forEach(date => {
     const dayDiv = document.createElement("div");
     dayDiv.className = "day-block";
@@ -323,49 +339,44 @@ async function renderSchedule() {
       groups[key].push(run);
     });
 
-Object.keys(groups).sort((a, b) => {
-  const rawA = a.split("|")[0];
-  const rawB = b.split("|")[0];
-  const startA = new Date(rawA);
-  const startB = new Date(rawB);
-  return startA - startB;
-}).forEach(key => {
+    Object.keys(groups)
+      .sort((a, b) => new Date(a.split("|")[0]) - new Date(b.split("|")[0]))
+      .forEach(key => {
+        const [rawStart, showName, hostName] = key.split("|");
 
-  const [rawStart, showName, hostName] = key.split("|");
+        const groupDiv = document.createElement("div");
+        groupDiv.className = "show-group";
 
-  const groupDiv = document.createElement("div");
-  groupDiv.className = "show-group";
+        groupDiv.innerHTML = `
+          <div class='show-title'>
+            <span class="show-time" data-raw-start="${rawStart}"></span>
+            — ${showName}${hostName ? " (" + hostName + ")" : ""}
+          </div>
+        `;
 
-  // Lazy-loaded time (updated by updateShowTimes())
-  groupDiv.innerHTML = `
-    <div class='show-title'>
-      <span class="show-time" data-raw-start="${rawStart}"></span>
-      — ${showName}${hostName ? " (" + hostName + ")" : ""}
-    </div>
-  `;
+        groups[key].forEach(run => {
+          const row = document.createElement("div");
+          row.className = "run-row";
+          row.innerHTML = `
+            <div>
+              <div class="game">${run["Game"]}</div>
+              <div class="category">${run["Category"]}</div>
+            </div>
+            <div class="estimate">${formatEstimate(run["Estimate"])}</div>
+            <div class="runner">${renderRunners(run["Runners"], run["Runner Stream"])}</div>
+          `;
+          groupDiv.appendChild(row);
+        });
 
-  groups[key].forEach(run => {
-    const row = document.createElement("div");
-    row.className = "run-row";
-    row.innerHTML = `
-      <div>
-        <div class="game">${run["Game"]}</div>
-        <div class="category">${run["Category"]}</div>
-      </div>
-      <div class="estimate">${formatEstimate(run["Estimate"])}</div>
-      <div class="runner">${renderRunners(run["Runners"], run["Runner Stream"])}</div>
-    `;
-    groupDiv.appendChild(row);
-  });
-
-  dayDiv.appendChild(groupDiv);
-});
-
-      dayDiv.appendChild(groupDiv);
-    });
+        // ✔ CORRECT: append once (the duplicate was removed)
+        dayDiv.appendChild(groupDiv);
+      });
 
     container.appendChild(dayDiv);
   });
+
+  // After initial load, apply current timezone
+  updateShowTimes();
 }
 
 renderSchedule();
