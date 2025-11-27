@@ -152,12 +152,10 @@ body {
 <div id="schedule-nav" class="navbar"></div>
 <div id="schedule"></div>
 
-<div id="schedule"></div>
-
 <script>
 const DATA_URL = "https://script.google.com/macros/s/AKfycbz-aJuovNQ-0_W-2lgbDZK4Erwnlu1vD8H1yNp7Dzpd3G7HlVUkfiOVIa3ZxF6-Q4sX/exec?t=" + new Date().getTime();
 
-let useLocalTimezone = false; // default: show Eastern
+let useLocalTimezone = false;
 let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 async function loadSchedule() {
@@ -175,10 +173,11 @@ function formatShowDate(rawDate) {
 function formatShowStart(rawStart) {
   if (!rawStart) return "";
   const d = new Date(rawStart);
-  return d.toLocaleTimeString("en-US", { 
-    hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, 
-    timeZone: useLocalTimezone ? userTimezone : "America/New_York"
-  });
+  const tz = useLocalTimezone ? userTimezone : "America/New_York";
+  const options = { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, timeZone: tz };
+  const timeStr = d.toLocaleTimeString("en-US", options);
+  const abbr = d.toLocaleTimeString("en-US", { timeZone: tz, timeZoneName: "short" }).split(' ')[2] || (tz === "America/New_York" ? "EST/EDT" : tz);
+  return `${timeStr} ${abbr}`;
 }
 
 function formatEstimate(rawEstimate) {
@@ -204,7 +203,6 @@ function renderRunners(runnerNames, runnerStreams) {
 async function renderSchedule() {
   const rows = await loadSchedule();
 
-  // Group by date
   const byDate = {};
   rows.forEach(r => {
     const date = formatShowDate(r["Show Date"]);
@@ -212,9 +210,13 @@ async function renderSchedule() {
     byDate[date].push(r);
   });
 
-  // Build navbar buttons
   const navContainer = document.getElementById("schedule-nav");
-  navContainer.innerHTML = ""; // clear old buttons
+  navContainer.innerHTML = "";
+  navContainer.style.display = "flex";
+  navContainer.style.justifyContent = "center";
+  navContainer.style.alignItems = "center";
+  navContainer.style.gap = "10px";
+
   const dayButtons = {};
   const today = new Date();
   today.setHours(0,0,0,0);
@@ -233,7 +235,6 @@ async function renderSchedule() {
     navContainer.appendChild(btn);
     dayButtons[date] = btn;
 
-    // Determine initial day
     const day = new Date(date);
     if (!initialDate) {
       if (day.getTime() === today.getTime() || day.getTime() < today.getTime()) initialDate = date;
@@ -243,12 +244,11 @@ async function renderSchedule() {
     }
   });
 
-  // Add timezone toggle to navbar (right side)
+  // Timezone toggle on right
   const tzToggle = document.createElement("div");
-  tzToggle.style.marginLeft = "auto";
+  tzToggle.style.marginLeft = "20px";
   tzToggle.style.display = "flex";
   tzToggle.style.alignItems = "center";
-  tzToggle.style.gap = "5px";
   tzToggle.innerHTML = `
     <label style="font-size:0.8rem; color:#fff; cursor:pointer;">
       <input type="checkbox" id="timezone-toggle"> Use my timezone (<span id="tz-abbr">EST</span>)
@@ -258,10 +258,9 @@ async function renderSchedule() {
 
   const toggleInput = document.getElementById("timezone-toggle");
   const tzAbbrSpan = document.getElementById("tz-abbr");
-
   toggleInput.addEventListener("change", () => {
     useLocalTimezone = toggleInput.checked;
-    renderSchedule(); // re-render with new timezone
+    renderSchedule();
   });
 
   function updateTZAbbr() {
@@ -277,7 +276,6 @@ async function renderSchedule() {
     if (dayButtons[date]) dayButtons[date].classList.add("active");
   }
 
-  // Scroll to initial day
   if (initialDate) {
     const dayDiv = document.getElementById("day-" + initialDate.replace(/\//g, "-"));
     if (dayDiv) {
@@ -295,7 +293,6 @@ async function renderSchedule() {
     });
   });
 
-  // Render schedule
   const container = document.getElementById("schedule");
   container.innerHTML = "";
 
@@ -347,7 +344,6 @@ async function renderSchedule() {
   updateTZAbbr();
 }
 
-// Load schedule on page load
 renderSchedule();
 </script>
 
