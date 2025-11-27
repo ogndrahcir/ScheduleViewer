@@ -13,12 +13,13 @@ body {
 }
 
 .navbar {
-  position: sticky;      /* sticks to top on scroll */
+  position: sticky;
   top: 0;
-  background-color: #2c1a4d; /* dark purple background */
+  background-color: #2c1a4d;
   color: #fff;
   display: flex;
-  overflow-x: auto;      /* horizontal scroll if too many days */
+  justify-content: center; /* centers all buttons */
+  overflow-x: auto;
   padding: 8px 10px;
   gap: 6px;
   z-index: 1000;
@@ -42,10 +43,9 @@ body {
 }
 
 .navbar button.active {
-  background-color: #ffc107; /* highlight current day, optional */
+  background-color: #ffc107;
   color: #000;
 }
-
   
 .day-block {
   background: #1e1e1e;  /* darker card background */
@@ -155,6 +155,7 @@ body {
 <div id="schedule"></div>
 
 <script>
+<script>
 const DATA_URL = "https://script.google.com/macros/s/AKfycbz-aJuovNQ-0_W-2lgbDZK4Erwnlu1vD8H1yNp7Dzpd3G7HlVUkfiOVIa3ZxF6-Q4sX/exec?t=" + new Date().getTime();
 
 async function loadSchedule() {
@@ -190,12 +191,11 @@ function renderRunners(runnerNames, runnerStreams) {
 
   return names.map((name, i) => {
     let url = streams[i] || "#";
-    if (!/^https?:\/\//i.test(url)) {
-      url = "https://" + url;
-    }
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
     return `<a href="${url}" target="_blank" class="runner-pill">${name}</a>`;
   }).join(" ");
 }
+
 async function renderSchedule() {
   const rows = await loadSchedule();
 
@@ -207,40 +207,80 @@ async function renderSchedule() {
     byDate[date].push(r);
   });
 
-  // Build navbar buttons AFTER byDate is populated
+  // Build navbar buttons
   const navContainer = document.getElementById("schedule-nav");
   navContainer.innerHTML = ""; // clear old buttons
+  const dayButtons = {};
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  let initialDate = null;
 
   Object.keys(byDate).sort().forEach(date => {
     const btn = document.createElement("button");
-    btn.textContent = date; // you can format like "Mon 11/23" if desired
+    btn.textContent = date;
+    btn.className = "nav-day-btn";
     btn.onclick = () => {
       const dayDiv = document.getElementById("day-" + date.replace(/\//g, "-"));
       if (dayDiv) dayDiv.scrollIntoView({ behavior: "smooth", block: "start" });
+      highlightDay(date);
     };
     navContainer.appendChild(btn);
+    dayButtons[date] = btn;
+
+    // Determine which day to scroll to initially
+    const day = new Date(date);
+    if (!initialDate) {
+      if (day.getTime() === today.getTime() || day.getTime() < today.getTime()) initialDate = date;
+    } else {
+      const closestDay = new Date(initialDate);
+      if (day.getTime() <= today.getTime() && day.getTime() > closestDay.getTime()) initialDate = date;
+    }
   });
 
+  function highlightDay(date) {
+    Object.keys(dayButtons).forEach(d => dayButtons[d].classList.remove("active"));
+    if (dayButtons[date]) dayButtons[date].classList.add("active");
+  }
+
+  // Scroll to initial day
+  if (initialDate) {
+    const dayDiv = document.getElementById("day-" + initialDate.replace(/\//g, "-"));
+    if (dayDiv) {
+      dayDiv.scrollIntoView({ behavior: "auto", block: "start" });
+      highlightDay(initialDate);
+    }
+  }
+
+  // Update highlight on scroll
+  window.addEventListener("scroll", () => {
+    Object.keys(byDate).forEach(date => {
+      const dayDiv = document.getElementById("day-" + date.replace(/\//g, "-"));
+      if (!dayDiv) return;
+      const rect = dayDiv.getBoundingClientRect();
+      if (rect.top <= 80 && rect.bottom > 80) highlightDay(date);
+    });
+  });
+
+  // Render schedule
   const container = document.getElementById("schedule");
   container.innerHTML = "";
 
   Object.keys(byDate).sort().forEach(date => {
     const dayDiv = document.createElement("div");
     dayDiv.className = "day-block";
-    dayDiv.id = "day-" + date.replace(/\//g, "-"); // assign ID for scrolling
+    dayDiv.id = "day-" + date.replace(/\//g, "-");
     dayDiv.innerHTML = `<div class='day-title'>${date}</div>`;
 
     const runs = byDate[date];
-
-    // Group by start time + show + host
     const groups = {};
+
     runs.forEach(run => {
       const key = `${formatShowStart(run["Show Start (Eastern)"])}|${run["Show"]}|${run["Host"]}`;
       if (!groups[key]) groups[key] = [];
       groups[key].push(run);
     });
 
-    // Render each group sorted chronologically
     Object.keys(groups).sort((a, b) => {
       const startA = new Date(`1970-01-01T${a.split("|")[0]}`);
       const startB = new Date(`1970-01-01T${b.split("|")[0]}`);
@@ -274,6 +314,8 @@ async function renderSchedule() {
 
 // Load schedule on page load
 renderSchedule();
+</script>
+
 </script>
 
 </body>
