@@ -125,31 +125,29 @@ h1 {
   padding-bottom: 10px;
 }
 
-.show-header-container {
-  display: flex;
-  justify-content: center; /* center grid horizontally */
-}
-
 .show-header {
   display: grid;
-  grid-template-columns: 150px 1fr;
-  align-items: center; 
+  grid-template-columns: 120px 1fr; /* logo | info */
   gap: 20px;
+  /* Make the header as tall as 2 run rows */
+  /* Assuming each run row has a fixed height, e.g., 60px each */
+  height: calc(2 * 60px); /* adjust 60px to your actual run row height */
+  align-items: center;     /* vertically center logo and info */
+  justify-content: center; /* center the entire grid horizontally */
 }
 
 .show-logo {
-  height: auto;
-  max-height: 2.5em;            /* slightly taller than text */
-  object-fit: contain;
+  width: 100%;
+  height: 100%;            /* fill the grid row height */
+  object-fit: contain;     /* maintain aspect ratio */
 }
 
 .show-info {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  justify-content: center; /* vertical centering within grid row */
+  align-items: center;     /* horizontally center text in its column */
 }
-
 
 .show-time {
   font-size: 2rem;
