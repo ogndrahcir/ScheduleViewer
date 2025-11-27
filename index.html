@@ -71,15 +71,17 @@ body {
   display: inline-block;
   padding: 3px 10px;
   margin: 2px;
-  background-color: #ffcc00;
-  color: #000;
+  background-color: #7b5ea3;  /* muted purple */
+  color: #ffffff;
   border-radius: 12px;
   text-decoration: none;
   font-size: 0.9em;
+  transition: background-color 0.2s;
 }
 .runner-pill:hover {
-  background-color: #ffaa00;
+  background-color: #946fc1;  /* slightly lighter purple on hover */
 }
+
 </style>
 </head>
 
@@ -124,10 +126,15 @@ function renderRunners(runnerNames, runnerStreams) {
   const streams = runnerStreams.split(",").map(s => s.trim());
 
   return names.map((name, i) => {
-    const url = streams[i] || "#";
+    let url = streams[i] || "#";
+    // Make sure URL starts with http:// or https://
+    if (!/^https?:\/\//i.test(url)) {
+      url = "https://" + url;
+    }
     return `<a href="${url}" target="_blank" class="runner-pill">${name}</a>`;
   }).join(" ");
 }
+
 
 async function renderSchedule() {
   const rows = await loadSchedule();
