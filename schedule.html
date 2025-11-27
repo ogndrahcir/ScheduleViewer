@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Schedule</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f8f8f8;
+  margin: 0;
+  padding: 20px;
+}
+
+.day-block {
+  background: white;
+  padding: 20px;
+  margin-bottom: 30px;
+  border-radius: 8px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+.day-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 5px;
+}
+
+.run-row {
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  display: grid;
+  grid-template-columns: 140px auto 120px 150px;
+  align-items: center;
+}
+
+.run-row:last-child {
+  border-bottom: none;
+}
+
+.time {
+  font-weight: bold;
+}
+.game {
+  font-size: 18px;
+}
+.category {
+  color: #555;
+}
+.runner {
+  color: #666;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Event Schedule</h1>
+<div id="schedule"></div>
+
+<script>
+// URL from your Apps Script deployment
+const DATA_URL = "https://script.google.com/macros/s/AKfycbzd5TOwWklm1Vjr8CHGkJgqxKpCRLPITcn8zLtVDd2dy_8j7YrALovQdEt_glvq5VI/exec";
+
+fetch(DATA_URL)
+  .then(r => r.json())
+  .then(data => renderSchedule(data));
+
+function renderSchedule(rows) {
+  // Group by date
+  const byDate = {};
+
+  rows.forEach(r => {
+    const date = r["Show Date"];
+    if (!byDate[date]) byDate[date] = [];
+    byDate[date].push(r);
+  });
+
+  const container = document.getElementById("schedule");
+
+  Object.keys(byDate).sort().forEach(date => {
+    const dayDiv = document.createElement("div");
+    dayDiv.className = "day-block";
+
+    dayDiv.innerHTML = `<div class='day-title'>${date}</div>`;
+
+    byDate[date].forEach(run => {
+      const row = document.createElement("div");
+      row.className = "run-row";
+
+      row.innerHTML = `
+        <div class="time">${run["Show Start (Eastern)"]}</div>
+        <div>
+          <div class="game">${run["Game"]}</div>
+          <div class="category">${run["Category"]}</div>
+        </div>
+        <div class="estimate">${run["Estimate"]}</div>
+        <div class="runner">${run["Runners"]}</div>
+      `;
+
+      dayDiv.appendChild(row);
+    });
+
+    container.appendChild(dayDiv);
+  });
+}
+</script>
+
+</body>
+</html>
