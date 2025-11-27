@@ -260,7 +260,7 @@ tzSelect.value = forcedTimezone;
 
 tzSelect.addEventListener("change", () => {
   forcedTimezone = tzSelect.value;
-  updateShowTimes(); // only update times
+  renderSchedule(); // rebuild everything correctly
 });
 
 // -------------------------------------------------------------
