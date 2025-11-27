@@ -157,6 +157,7 @@ h1 {
 }
 
 .estimate {
+  font-size: 18px;
   font-weight: bold;
   color: #ffffff;
   text-align: center;
@@ -177,7 +178,7 @@ h1 {
   color: #ffffff;
   border-radius: 12px;
   text-decoration: none;
-  font-size: 0.9em;
+  font-size: 1.5em;
   transition: background-color 0.2s;
 }
 
