@@ -83,27 +83,27 @@ h1 {
 
 .show-header {
   display: flex;
-  flex-direction: column; /* stack logo + info vertically */
-  align-items: center;    /* center all header content */
-  gap: 10px; /* space between logo and info */
+  align-items: center; /* vertical center of logo and right column */
+  gap: 20px;           /* space between logo and right column */
   margin-bottom: 10px;
 }
 
 .show-logo {
-  height: 80px; /* adjust logo height as needed */
+  height: 80px;
   object-fit: contain;
 }
 
 .show-info {
   display: flex;
-  flex-direction: column;
-  align-items: center; /* center the time and host */
+  flex-direction: column; /* stack time on top of host */
+  justify-content: center; /* vertical alignment relative to logo */
+  align-items: flex-start; /* left-align text within right column */
 }
 
 .show-time {
-  font-size: 2rem;  /* large start time */
+  font-size: 2rem;
   font-weight: bold;
-  color: #ffffff;   /* changed to white */
+  color: #ffffff; 
 }
 
 .show-subtitle {
