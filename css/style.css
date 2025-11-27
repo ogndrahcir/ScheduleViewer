@@ -1,3 +1,6 @@
+/* ==============================================================
+   Base Styles
+   ============================================================== */
 body {
   font-family: Arial, sans-serif;
   background: #121212; /* dark background */
@@ -6,13 +9,21 @@ body {
   padding: 20px;
 }
 
+h1 {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+/* ==============================================================
+   Navbar / Day Navigation
+   ============================================================== */
 .navbar {
   position: sticky;
   top: 0;
   background-color: #2c1a4d;
   color: #fff;
   display: flex;
-  justify-content: center; /* centers all buttons */
+  justify-content: center;
   overflow-x: auto;
   padding: 8px 10px;
   gap: 6px;
@@ -40,9 +51,12 @@ body {
   background-color: #e8e8e8;
   color: #000;
 }
-  
+
+/* ==============================================================
+   Day Block
+   ============================================================== */
 .day-block {
-  background: #1e1e1e;  /* darker card background */
+  background: #1e1e1e;
   padding: 20px;
   margin-bottom: 30px;
   border-radius: 8px;
@@ -58,6 +72,9 @@ body {
   color: #ffffff;
 }
 
+/* ==============================================================
+   Show Group / Header
+   ============================================================== */
 .show-group {
   margin-bottom: 20px;
   border-bottom: 1px solid #333;
@@ -72,38 +89,31 @@ body {
 }
 
 .show-logo {
-  height: 80px; /* adjust logo height */
+  height: 80px; /* adjust logo height as needed */
   object-fit: contain;
 }
 
 .show-info {
   display: flex;
   flex-direction: column;
-  align-items: flex-start; /* left align the text */
+  align-items: flex-start; /* left-align the text */
 }
 
 .show-time {
-  font-size: 2rem;  /* big time */
+  font-size: 2rem;  /* large start time */
   font-weight: bold;
+  color: #ffcc00;
 }
 
 .show-subtitle {
   font-size: 0.9rem;
   color: #ccc;
+  margin-top: 2px;
 }
 
-.run-row {
-  padding: 5px 0;
-  display: grid;
-  grid-template-columns: 140px auto 120px 150px;
-  align-items: center;
-}
-
-.time {
-  font-weight: bold;
-  color: #ffcc00;
-}
-  
+/* ==============================================================
+   Run Row
+   ============================================================== */
 .run-row {
   display: grid;
   grid-template-columns: 2fr 1fr 2fr; /* left: game, middle: estimate, right: runners */
@@ -111,12 +121,17 @@ body {
   padding: 10px;
   margin-bottom: 8px;
   border-radius: 6px;
-  border: 1px solid #2a2a2a; /* subtle row border */
+  border: 1px solid #2a2a2a;
   background-color: #1a1a1a;
+  transition: background-color 0.2s;
 }
 
 .run-row:nth-child(even) {
   background-color: #242424; /* alternating row color */
+}
+
+.run-row:hover {
+  background-color: #2e2e2e; /* subtle hover effect */
 }
 
 .game {
@@ -133,14 +148,14 @@ body {
 
 .estimate {
   font-weight: bold;
-  color: #ffffff; /* changed from yellow to white */
+  color: #ffffff;
   text-align: center;
 }
 
 .runner {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-start; /* keep pills aligned to left in their column */
+  justify-content: flex-start;
   gap: 4px;
 }
 
@@ -148,13 +163,14 @@ body {
   display: inline-block;
   padding: 3px 10px;
   margin: 2px;
-  background-color: #7b5ea3;  /* muted purple */
+  background-color: #7b5ea3;
   color: #ffffff;
   border-radius: 12px;
   text-decoration: none;
   font-size: 0.9em;
   transition: background-color 0.2s;
 }
+
 .runner-pill:hover {
-  background-color: #946fc1;  /* slightly lighter purple on hover */
+  background-color: #946fc1;
 }
