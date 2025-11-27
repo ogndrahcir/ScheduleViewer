@@ -157,6 +157,9 @@ body {
 <script>
 const DATA_URL = "https://script.google.com/macros/s/AKfycbz-aJuovNQ-0_W-2lgbDZK4Erwnlu1vD8H1yNp7Dzpd3G7HlVUkfiOVIa3ZxF6-Q4sX/exec?t=" + new Date().getTime();
 
+let useLocalTimezone = false; // default: show Eastern
+let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 async function loadSchedule() {
   const response = await fetch(DATA_URL);
   const data = await response.json();
@@ -172,7 +175,10 @@ function formatShowDate(rawDate) {
 function formatShowStart(rawStart) {
   if (!rawStart) return "";
   const d = new Date(rawStart);
-  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, timeZone: "America/New_York" });
+  return d.toLocaleTimeString("en-US", { 
+    hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, 
+    timeZone: useLocalTimezone ? userTimezone : "America/New_York"
+  });
 }
 
 function formatEstimate(rawEstimate) {
@@ -227,7 +233,7 @@ async function renderSchedule() {
     navContainer.appendChild(btn);
     dayButtons[date] = btn;
 
-    // Determine which day to scroll to initially
+    // Determine initial day
     const day = new Date(date);
     if (!initialDate) {
       if (day.getTime() === today.getTime() || day.getTime() < today.getTime()) initialDate = date;
@@ -236,6 +242,35 @@ async function renderSchedule() {
       if (day.getTime() <= today.getTime() && day.getTime() > closestDay.getTime()) initialDate = date;
     }
   });
+
+  // Add timezone toggle to navbar (right side)
+  const tzToggle = document.createElement("div");
+  tzToggle.style.marginLeft = "auto";
+  tzToggle.style.display = "flex";
+  tzToggle.style.alignItems = "center";
+  tzToggle.style.gap = "5px";
+  tzToggle.innerHTML = `
+    <label style="font-size:0.8rem; color:#fff; cursor:pointer;">
+      <input type="checkbox" id="timezone-toggle"> Use my timezone (<span id="tz-abbr">EST</span>)
+    </label>
+  `;
+  navContainer.appendChild(tzToggle);
+
+  const toggleInput = document.getElementById("timezone-toggle");
+  const tzAbbrSpan = document.getElementById("tz-abbr");
+
+  toggleInput.addEventListener("change", () => {
+    useLocalTimezone = toggleInput.checked;
+    renderSchedule(); // re-render with new timezone
+  });
+
+  function updateTZAbbr() {
+    const d = new Date();
+    const tz = useLocalTimezone ? userTimezone : "America/New_York";
+    tzAbbrSpan.textContent = d.toLocaleTimeString('en-US', { timeZoneName: 'short', timeZone: tz }).split(' ')[2] || tz;
+  }
+
+  updateTZAbbr();
 
   function highlightDay(date) {
     Object.keys(dayButtons).forEach(d => dayButtons[d].classList.remove("active"));
@@ -251,7 +286,6 @@ async function renderSchedule() {
     }
   }
 
-  // Update highlight on scroll
   window.addEventListener("scroll", () => {
     Object.keys(byDate).forEach(date => {
       const dayDiv = document.getElementById("day-" + date.replace(/\//g, "-"));
@@ -309,6 +343,8 @@ async function renderSchedule() {
 
     container.appendChild(dayDiv);
   });
+
+  updateTZAbbr();
 }
 
 // Load schedule on page load
