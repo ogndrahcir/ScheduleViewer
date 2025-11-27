@@ -20,7 +20,7 @@ body {
 }
 
 .day-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: bold;
   margin-bottom: 15px;
   border-bottom: 2px solid #ddd;
@@ -96,41 +96,51 @@ function formatEstimate(rawEstimate) {
 async function renderSchedule() {
   const rows = await loadSchedule();
 
-  // Group by date
-  const byDate = {};
+  // Group by date, then by show
+  const byDateAndShow = {};
+
   rows.forEach(r => {
     const date = formatShowDate(r["Show Date"]);
-    if (!byDate[date]) byDate[date] = [];
-    byDate[date].push(r);
+    const show = r["Show"] || "Unknown Show";
+
+    if (!byDateAndShow[date]) byDateAndShow[date] = {};
+    if (!byDateAndShow[date][show]) byDateAndShow[date][show] = [];
+    byDateAndShow[date][show].push(r);
   });
 
   const container = document.getElementById("schedule");
   container.innerHTML = "";
 
-  Object.keys(byDate).sort().forEach(date => {
-    const dayDiv = document.createElement("div");
-    dayDiv.className = "day-block";
+  Object.keys(byDateAndShow).sort().forEach(date => {
+    const shows = byDateAndShow[date];
 
-    dayDiv.innerHTML = `<div class='day-title'>${date}</div>`;
+    Object.keys(shows).forEach(showName => {
+      const dayDiv = document.createElement("div");
+      dayDiv.className = "day-block";
 
-    byDate[date].forEach(run => {
-      const row = document.createElement("div");
-      row.className = "run-row";
+      // Include host in the title
+      const host = shows[showName][0]["Host"] || "";
+      dayDiv.innerHTML = `<div class='day-title'>${date} — ${showName}${host ? " (" + host + ")" : ""}</div>`;
 
-      row.innerHTML = `
-        <div class="time">${formatShowStart(run["Show Start (Eastern)"])}</div>
-        <div>
-          <div class="game">${run["Game"]}</div>
-          <div class="category">${run["Category"]}</div>
-        </div>
-        <div class="estimate">${formatEstimate(run["Estimate"])}</div>
-        <div class="runner">${run["Runners"]}</div>
-      `;
+      shows[showName].forEach(run => {
+        const row = document.createElement("div");
+        row.className = "run-row";
 
-      dayDiv.appendChild(row);
+        row.innerHTML = `
+          <div class="time">${formatShowStart(run["Show Start (Eastern)"])}</div>
+          <div>
+            <div class="game">${run["Game"]}</div>
+            <div class="category">${run["Category"]}</div>
+          </div>
+          <div class="estimate">${formatEstimate(run["Estimate"])}</div>
+          <div class="runner">${run["Runners"]}</div>
+        `;
+
+        dayDiv.appendChild(row);
+      });
+
+      container.appendChild(dayDiv);
     });
-
-    container.appendChild(dayDiv);
   });
 }
 
