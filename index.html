@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -20,23 +20,29 @@ body {
 }
 
 .day-title {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: bold;
   margin-bottom: 15px;
   border-bottom: 2px solid #ddd;
   padding-bottom: 5px;
 }
 
-.run-row {
-  padding: 10px 0;
+.show-group {
+  margin-bottom: 20px;
   border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.show-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.run-row {
+  padding: 5px 0;
   display: grid;
   grid-template-columns: 140px auto 120px 150px;
   align-items: center;
-}
-
-.run-row:last-child {
-  border-bottom: none;
 }
 
 .time {
@@ -96,38 +102,45 @@ function formatEstimate(rawEstimate) {
 async function renderSchedule() {
   const rows = await loadSchedule();
 
-  // Group by date, then by show
-  const byDateAndShow = {};
-
+  // Group by date
+  const byDate = {};
   rows.forEach(r => {
     const date = formatShowDate(r["Show Date"]);
-    const show = r["Show"] || "Unknown Show";
-
-    if (!byDateAndShow[date]) byDateAndShow[date] = {};
-    if (!byDateAndShow[date][show]) byDateAndShow[date][show] = [];
-    byDateAndShow[date][show].push(r);
+    if (!byDate[date]) byDate[date] = [];
+    byDate[date].push(r);
   });
 
   const container = document.getElementById("schedule");
   container.innerHTML = "";
 
-  Object.keys(byDateAndShow).sort().forEach(date => {
-    const shows = byDateAndShow[date];
+  Object.keys(byDate).sort().forEach(date => {
+    const dayDiv = document.createElement("div");
+    dayDiv.className = "day-block";
 
-    Object.keys(shows).forEach(showName => {
-      const dayDiv = document.createElement("div");
-      dayDiv.className = "day-block";
+    dayDiv.innerHTML = `<div class='day-title'>${date}</div>`;
 
-      // Include host in the title
-      const host = shows[showName][0]["Host"] || "";
-      dayDiv.innerHTML = `<div class='day-title'>${date} — ${showName}${host ? " (" + host + ")" : ""}</div>`;
+    const runs = byDate[date];
 
-      shows[showName].forEach(run => {
+    // Group by start time + show + host
+    const groups = {};
+    runs.forEach(run => {
+      const key = `${formatShowStart(run["Show Start (Eastern)"])}|${run["Show"]}|${run["Host"]}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(run);
+    });
+
+    // Render each group
+    Object.keys(groups).sort().forEach(key => {
+      const [startTime, showName, hostName] = key.split("|");
+      const groupDiv = document.createElement("div");
+      groupDiv.className = "show-group";
+      groupDiv.innerHTML = `<div class='show-title'>${startTime} — ${showName}${hostName ? " (" + hostName + ")" : ""}</div>`;
+
+      groups[key].forEach(run => {
         const row = document.createElement("div");
         row.className = "run-row";
-
         row.innerHTML = `
-          <div class="time">${formatShowStart(run["Show Start (Eastern)"])}</div>
+          <div class="time">${startTime}</div>
           <div>
             <div class="game">${run["Game"]}</div>
             <div class="category">${run["Category"]}</div>
@@ -135,12 +148,13 @@ async function renderSchedule() {
           <div class="estimate">${formatEstimate(run["Estimate"])}</div>
           <div class="runner">${run["Runners"]}</div>
         `;
-
-        dayDiv.appendChild(row);
+        groupDiv.appendChild(row);
       });
 
-      container.appendChild(dayDiv);
+      dayDiv.appendChild(groupDiv);
     });
+
+    container.appendChild(dayDiv);
   });
 }
 
