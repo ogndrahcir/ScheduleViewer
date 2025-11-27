@@ -84,7 +84,7 @@ h1 {
 .show-header {
   display: grid;
   grid-template-columns: 120px 1fr; /* logo left, info right */
-  justify-content: center;
+  justify-content: left;
   align-items: center;
   gap: 20px;
   margin-bottom: 10px;
@@ -93,6 +93,7 @@ h1 {
 .show-logo {
   height: 80px;
   object-fit: contain;
+  justify-content: right;
 }
 
 .show-info {
