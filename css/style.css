@@ -82,28 +82,30 @@ h1 {
 }
 
 .show-header {
-  display: flex;
-  align-items: center; /* vertical center of logo and right column */
-  gap: 20px;           /* space between logo and right column */
+  display: grid;
+  grid-template-columns: 100px 1fr; /* left fixed width logo, right flexible */
+  grid-template-rows: auto auto;    /* two rows in right column */
+  column-gap: 20px;                 /* space between logo and right column */
+  align-items: center;              /* vertically center logo */
   margin-bottom: 10px;
 }
 
 .show-logo {
+  grid-row: 1 / span 2; /* logo spans both rows */
   height: 80px;
   object-fit: contain;
 }
 
 .show-info {
   display: flex;
-  flex-direction: column; /* stack time on top of host */
-  justify-content: center; /* vertical alignment relative to logo */
-  align-items: flex-start; /* left-align text within right column */
+  flex-direction: column;
+  justify-content: center;
 }
 
 .show-time {
   font-size: 2rem;
   font-weight: bold;
-  color: #ffffff; 
+  color: #ffffff;
 }
 
 .show-subtitle {
@@ -111,6 +113,7 @@ h1 {
   color: #ccc;
   margin-top: 2px;
 }
+
 
 /* Add extra spacing between header and first run */
 .show-group .run-container {
