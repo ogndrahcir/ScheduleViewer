@@ -83,9 +83,9 @@ h1 {
 
 .show-header {
   display: flex;
-  flex-direction: column;      /* stack logo, time, host vertically */
-  align-items: center;         /* center everything horizontally */
-  gap: 10px;                   /* space between logo, time, host */
+  flex-direction: column; /* stack logo + info vertically */
+  align-items: center;    /* center all header content */
+  gap: 10px; /* space between logo and info */
   margin-bottom: 10px;
 }
 
@@ -97,19 +97,24 @@ h1 {
 .show-info {
   display: flex;
   flex-direction: column;
-  align-items: center;         /* center the text under the logo */
+  align-items: center; /* center the time and host */
 }
 
 .show-time {
   font-size: 2rem;  /* large start time */
   font-weight: bold;
-  color: #ffffff;   /* changed from yellow to white */
+  color: #ffffff;   /* changed to white */
 }
 
 .show-subtitle {
   font-size: 0.9rem;
   color: #ccc;
   margin-top: 2px;
+}
+
+/* Add extra spacing between header and first run */
+.show-group .run-container {
+  margin-top: 15px;
 }
 
 /* ==============================================================
