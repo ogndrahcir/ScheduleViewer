@@ -125,12 +125,16 @@ h1 {
   padding-bottom: 10px;
 }
 
+.show-header-container {
+  display: flex;
+  justify-content: center; /* center grid horizontally */
+}
+
 .show-header {
-  display: flex;                 /* flex container */
-  justify-content: center;       /* center items horizontally */
-  align-items: center;           /* center items vertically */
-  gap: 20px;                     /* space between logo and text */
-  margin-bottom: 10px;
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center; 
+  gap: 20px;
 }
 
 .show-logo {
