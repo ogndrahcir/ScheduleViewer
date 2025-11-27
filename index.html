@@ -54,48 +54,44 @@ body {
 }
   
 .run-row {
-  display: flex;               /* easier alignment */
-  flex-direction: column;      /* stack info vertically */
-  align-items: center;         /* center content */
-  background-color: #1a1a1a;   /* base dark row color */
+  display: grid;
+  grid-template-columns: 2fr 1fr 2fr; /* left: game, middle: estimate, right: runners */
+  align-items: center;
   padding: 10px;
   margin-bottom: 8px;
   border-radius: 6px;
-  border: 1px solid #2a2a2a; /* subtle border to demarcate rows */
-  transition: background-color 0.2s;
+  border: 1px solid #2a2a2a; /* subtle row border */
+  background-color: #1a1a1a;
 }
 
 .run-row:nth-child(even) {
-  background-color: #242424; /* slightly lighter for alternating effect */
+  background-color: #242424; /* alternating row color */
 }
 
 .game {
   font-size: 18px;
   font-weight: bold;
   color: #ffffff;
-  text-align: center;
   margin-bottom: 4px;
 }
 
 .category {
   color: #aaaaaa;
-  text-align: center;
-  margin-bottom: 4px;
+  font-size: 14px;
 }
 
 .estimate {
   font-weight: bold;
-  color: #ffcc00;
-  margin-bottom: 4px;
+  color: #ffffff; /* changed from yellow to white */
+  text-align: center;
 }
 
 .runner {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px; /* space between pills */
+  justify-content: flex-start; /* keep pills aligned to left in their column */
+  gap: 4px;
 }
-
 
 .runner-pill {
   display: inline-block;
@@ -208,8 +204,10 @@ async function renderSchedule() {
         row.className = "run-row";
         // Alternate colors with CSS :nth-child, so no time column
         row.innerHTML = `
-          <div class="game">${run["Game"]}</div>
-          <div class="category">${run["Category"]}</div>
+          <div>
+            <div class="game">${run["Game"]}</div>
+            <div class="category">${run["Category"]}</div>
+          </div>
           <div class="estimate">${formatEstimate(run["Estimate"])}</div>
           <div class="runner">${renderRunners(run["Runners"], run["Runner Stream"])}</div>
         `;
