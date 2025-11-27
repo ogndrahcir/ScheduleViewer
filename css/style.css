@@ -126,7 +126,7 @@ h1 {
 
 .show-header {
   display: grid;
-  grid-template-columns: auto auto; /* logo | info */
+  grid-template-columns: auto auto auto auto; /* logo | info */
   gap: 20px;
   height: calc(2 * 60px); 
   justify-content: center; 
@@ -135,11 +135,11 @@ h1 {
 .show-logo {
   width: 100%;
   height: 100%;
-  align-items: right;
+  justify-self: end;
 }
 
 .show-info {
-  align-items: left;     /* horizontally center text in its column */
+  text-align: left;     /* horizontally center text in its column */
 }
 
 .show-time {
