@@ -28,16 +28,25 @@ h1 {
   padding: 8px 10px;
   gap: 6px;
   z-index: 1000;
+  scrollbar-width: thin; /* Firefox */
 }
 
-/* Updated navbar buttons: two-line layout */
+.navbar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.navbar::-webkit-scrollbar-thumb {
+  background-color: #633fa0;
+  border-radius: 3px;
+}
+
 .nav-day-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 80px; /* uniform width for all buttons */
+  min-width: 70px;
   padding: 6px 10px;
   background-color: #4b2d7d;
   color: #fff;
@@ -61,12 +70,30 @@ h1 {
 .nav-day-btn .day-name {
   font-weight: bold;
   font-size: 0.85rem;
+  line-height: 1.2;
 }
 
 .nav-day-btn .month-day {
   font-size: 0.75rem;
   color: #ddd;
+  line-height: 1.1;
   margin-top: 2px;
+}
+
+/* Small screens: reduce width & font */
+@media (max-width: 480px) {
+  .nav-day-btn {
+    min-width: 55px;
+    padding: 4px 6px;
+  }
+
+  .nav-day-btn .day-name {
+    font-size: 0.75rem;
+  }
+
+  .nav-day-btn .month-day {
+    font-size: 0.65rem;
+  }
 }
 
 /* ============================================================== 
