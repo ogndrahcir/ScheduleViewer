@@ -70,11 +70,25 @@ body {
   padding-bottom: 10px;
 }
 
-.show-title {
-  font-weight: bold;
-  margin-bottom: 5px;
-  color: #ffffff;
+.show-header {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* horizontally center logo + time */
+  gap: 12px;
+  margin-bottom: 4px;
 }
+
+.show-logo {
+  height: 40px; /* adjust as needed */
+}
+
+.show-subtitle {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #cccccc;
+  margin-bottom: 8px;
+}
+
 
 .run-row {
   padding: 5px 0;
@@ -199,6 +213,19 @@ function renderRunners(runnerNames, runnerStreams) {
 }
 
 // -------------------------------------------------------------
+// Resolve logo URL
+// -------------------------------------------------------------
+function resolveLogo(showName) {
+  // GitHub Pages paths are case-sensitive; adjust names if needed
+  const formattedName = showName.replace(/[/\\?%*:|"<>]/g, ""); // remove invalid filename chars
+  const path = `Logos/${formattedName}.png`;
+  
+  // Note: We can’t check file existence on client-side for GitHub Pages
+  // So we just try the path; fallback is the default GDQ logo
+  return `${path}`; // if missing, image will fallback to alt text, or we can use `onerror`
+}
+
+// -------------------------------------------------------------
 // Timezone dropdown (created once)
 // -------------------------------------------------------------
 const navContainer = document.getElementById("schedule-nav");
@@ -233,7 +260,7 @@ tzSelect.value = forcedTimezone;
 
 tzSelect.addEventListener("change", () => {
   forcedTimezone = tzSelect.value;
-  renderSchedule(); // rebuild everything correctly
+  updateShowTimes(); // only update times
 });
 
 // -------------------------------------------------------------
@@ -347,11 +374,16 @@ async function renderSchedule() {
         const groupDiv = document.createElement("div");
         groupDiv.className = "show-group";
 
+        // Build logo path with fallback
+        const logoPath = resolveLogo(showName);
+        const gdqFallback = "Logos/GDQ Logo.png";
+
         groupDiv.innerHTML = `
-          <div class='show-title'>
+          <div class="show-header">
+            <img src="${logoPath}" onerror="this.onerror=null;this.src='${gdqFallback}'" alt="Logo for ${showName}" class="show-logo">
             <span class="show-time" data-raw-start="${rawStart}"></span>
-            — ${showName}${hostName ? " (" + hostName + ")" : ""}
           </div>
+          <div class="show-subtitle">Hosted by: ${hostName || "TBA"}</div>
         `;
 
         groups[key].forEach(run => {
@@ -368,20 +400,19 @@ async function renderSchedule() {
           groupDiv.appendChild(row);
         });
 
-        // ✔ CORRECT: append once (the duplicate was removed)
         dayDiv.appendChild(groupDiv);
       });
 
     container.appendChild(dayDiv);
   });
 
-  // After initial load, apply current timezone
+  // After initial load, update show times
   updateShowTimes();
 }
 
 renderSchedule();
 </script>
 
-  
+
 </body>
 </html>
