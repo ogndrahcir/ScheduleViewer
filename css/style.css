@@ -135,11 +135,10 @@ h1 {
 
 .show-logo {
   grid-area: logo;
-  width: 100%;
-  height: 100%;
-  max-width: 100%;       /* never wider than column */
-  max-height: 100%;      /* never taller than header */
-  object-fit: contain;
+  width: auto;            /* natural width */
+  height: 100%;           /* fill the header height */
+  max-width: 100%;        /* don't overflow column */
+  object-fit: contain;    /* preserve aspect ratio */
   object-position: right;
   justify-self: end;
   display: block;
@@ -192,10 +191,10 @@ h1 {
 
   .show-logo {
     grid-area: logo;
-    width: auto;            /* natural width */
-    height: auto;           /* natural height */
-    max-width: 100%;        /* cannot exceed header width */
-    max-height: 100%;       /* cannot exceed header height */
+    width: auto;           /* natural width */
+    height: auto;          /* scale naturally */
+    max-width: 100%;       /* contained inside header */
+    max-height: 100%;      /* cannot exceed header height */
     justify-self: center;
     object-fit: contain;
     object-position: center;
@@ -216,7 +215,6 @@ h1 {
     font-size: 0.85rem;
   }
 }
-
 
 /* ============================================================== 
    Run Header Row (Sticky) 
