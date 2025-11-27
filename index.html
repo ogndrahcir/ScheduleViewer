@@ -379,11 +379,13 @@ async function renderSchedule() {
         const gdqFallback = "Logos/GDQ Logo.png";
 
         groupDiv.innerHTML = `
-          <div class="show-header">
-            <img src="${logoPath}" onerror="this.onerror=null;this.src='${gdqFallback}'" alt="Logo for ${showName}" class="show-logo">
-            <span class="show-time" data-raw-start="${rawStart}"></span>
+          <div class="show-header" style="display:flex; align-items:center; gap:20px;">
+            <img src="${logoPath}" onerror="this.onerror=null;this.src='${gdqFallback}'" alt="Logo for ${showName}" class="show-logo" style="height:80px;">
+            <div class="show-info" style="display:flex; flex-direction:column; align-items:flex-start;">
+              <span class="show-time" data-raw-start="${rawStart}" style="font-size:2rem; font-weight:bold;"></span>
+              <span class="show-subtitle" style="font-size:0.9rem; color:#ccc;">Hosted by: ${hostName || "TBA"}</span>
+            </div>
           </div>
-          <div class="show-subtitle">Hosted by: ${hostName || "TBA"}</div>
         `;
 
         groups[key].forEach(run => {
