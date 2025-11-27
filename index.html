@@ -228,9 +228,20 @@ allTimezones.forEach(tz => {
 tzSelect.value = forcedTimezone;
 
 tzSelect.addEventListener("change", () => {
-  forcedTimezone = tzSelect.value; // only update variable
-  renderSchedule();               // re-render with new timezone
+  forcedTimezone = tzSelect.value;
+  updateShowTimes(); // <-- UPDATE ONLY THE TIME, NOT THE WHOLE PAGE
 });
+
+function updateShowTimes() {
+  // Update show start times
+  document.querySelectorAll("[data-raw-start]").forEach(span => {
+    const raw = span.dataset.rawStart;
+    if (!raw) return;
+    const d = new Date(raw);
+    const options = { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, timeZone: forcedTimezone };
+    span.textContent = d.toLocaleTimeString("en-US", options);
+  });
+}
 
 async function renderSchedule() {
   const rows = await loadSchedule();
@@ -307,34 +318,48 @@ async function renderSchedule() {
     const groups = {};
 
     runs.forEach(run => {
-      const key = `${formatShowStart(run["Show Start (Eastern)"])}|${run["Show"]}|${run["Host"]}`;
+      const key = `${run["Show Start (Eastern)"]}|${run["Show"]}|${run["Host"]}`;
       if (!groups[key]) groups[key] = [];
       groups[key].push(run);
     });
 
-    Object.keys(groups).sort((a, b) => {
-      const startA = new Date(`1970-01-01T${a.split("|")[0]}`);
-      const startB = new Date(`1970-01-01T${b.split("|")[0]}`);
-      return startA - startB;
-    }).forEach(key => {
-      const [startTime, showName, hostName] = key.split("|");
-      const groupDiv = document.createElement("div");
-      groupDiv.className = "show-group";
-      groupDiv.innerHTML = `<div class='show-title'>${startTime} — ${showName}${hostName ? " (" + hostName + ")" : ""}</div>`;
+Object.keys(groups).sort((a, b) => {
+  const rawA = a.split("|")[0];
+  const rawB = b.split("|")[0];
+  const startA = new Date(rawA);
+  const startB = new Date(rawB);
+  return startA - startB;
+}).forEach(key => {
 
-      groups[key].forEach(run => {
-        const row = document.createElement("div");
-        row.className = "run-row";
-        row.innerHTML = `
-          <div>
-            <div class="game">${run["Game"]}</div>
-            <div class="category">${run["Category"]}</div>
-          </div>
-          <div class="estimate">${formatEstimate(run["Estimate"])}</div>
-          <div class="runner">${renderRunners(run["Runners"], run["Runner Stream"])}</div>
-        `;
-        groupDiv.appendChild(row);
-      });
+  const [rawStart, showName, hostName] = key.split("|");
+
+  const groupDiv = document.createElement("div");
+  groupDiv.className = "show-group";
+
+  // Lazy-loaded time (updated by updateShowTimes())
+  groupDiv.innerHTML = `
+    <div class='show-title'>
+      <span class="show-time" data-raw-start="${rawStart}"></span>
+      — ${showName}${hostName ? " (" + hostName + ")" : ""}
+    </div>
+  `;
+
+  groups[key].forEach(run => {
+    const row = document.createElement("div");
+    row.className = "run-row";
+    row.innerHTML = `
+      <div>
+        <div class="game">${run["Game"]}</div>
+        <div class="category">${run["Category"]}</div>
+      </div>
+      <div class="estimate">${formatEstimate(run["Estimate"])}</div>
+      <div class="runner">${renderRunners(run["Runners"], run["Runner Stream"])}</div>
+    `;
+    groupDiv.appendChild(row);
+  });
+
+  dayDiv.appendChild(groupDiv);
+});
 
       dayDiv.appendChild(groupDiv);
     });
