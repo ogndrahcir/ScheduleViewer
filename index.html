@@ -155,9 +155,7 @@ body {
 <script>
 const DATA_URL = "https://script.google.com/macros/s/AKfycbz-aJuovNQ-0_W-2lgbDZK4Erwnlu1vD8H1yNp7Dzpd3G7HlVUkfiOVIa3ZxF6-Q4sX/exec?t=" + new Date().getTime();
 
-let useLocalTimezone = true; // default to user's timezone
-let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-let forcedTimezone = userTimezone;
+let forcedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // default: user's timezone
 
 async function loadSchedule() {
   const response = await fetch(DATA_URL);
@@ -174,9 +172,8 @@ function formatShowDate(rawDate) {
 function formatShowStart(rawStart) {
   if (!rawStart) return "";
   const d = new Date(rawStart);
-  const tz = forcedTimezone;
-  const options = { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, timeZone: tz };
-  return d.toLocaleTimeString("en-US", options); // Only HH:MM:SS AM/PM, no timezone abbreviation
+  const options = { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, timeZone: forcedTimezone };
+  return d.toLocaleTimeString("en-US", options);
 }
 
 function formatEstimate(rawEstimate) {
@@ -199,6 +196,42 @@ function renderRunners(runnerNames, runnerStreams) {
   }).join(" ");
 }
 
+// Build timezone dropdown **once**, outside of renderSchedule
+const navContainer = document.getElementById("schedule-nav");
+navContainer.style.display = "flex";
+navContainer.style.justifyContent = "center";
+navContainer.style.alignItems = "center";
+navContainer.style.gap = "10px";
+
+const tzSelectWrapper = document.createElement("div");
+tzSelectWrapper.style.marginLeft = "20px";
+tzSelectWrapper.style.display = "flex";
+tzSelectWrapper.style.alignItems = "center";
+tzSelectWrapper.innerHTML = `
+  <label style="font-size:0.8rem; color:#fff; cursor:pointer;">
+    Timezone: 
+    <select id="timezone-select"></select>
+  </label>
+`;
+navContainer.appendChild(tzSelectWrapper);
+
+const tzSelect = document.getElementById("timezone-select");
+const allTimezones = Intl.supportedValuesOf("timeZone").sort();
+allTimezones.forEach(tz => {
+  const opt = document.createElement("option");
+  opt.value = tz;
+  opt.textContent = tz;
+  tzSelect.appendChild(opt);
+});
+
+// Set default selected
+tzSelect.value = forcedTimezone;
+
+tzSelect.addEventListener("change", () => {
+  forcedTimezone = tzSelect.value; // only update variable
+  renderSchedule();               // re-render with new timezone
+});
+
 async function renderSchedule() {
   const rows = await loadSchedule();
 
@@ -209,18 +242,14 @@ async function renderSchedule() {
     byDate[date].push(r);
   });
 
-  const navContainer = document.getElementById("schedule-nav");
-  navContainer.innerHTML = "";
-  navContainer.style.display = "flex";
-  navContainer.style.justifyContent = "center";
-  navContainer.style.alignItems = "center";
-  navContainer.style.gap = "10px";
-
   const dayButtons = {};
   const today = new Date();
   today.setHours(0,0,0,0);
 
   let initialDate = null;
+
+  // Remove old day buttons but keep tz dropdown intact
+  [...navContainer.querySelectorAll("button")].forEach(b => b.remove());
 
   Object.keys(byDate).sort().forEach(date => {
     const btn = document.createElement("button");
@@ -231,7 +260,7 @@ async function renderSchedule() {
       if (dayDiv) dayDiv.scrollIntoView({ behavior: "smooth", block: "start" });
       highlightDay(date);
     };
-    navContainer.appendChild(btn);
+    navContainer.insertBefore(btn, tzSelectWrapper); // add buttons before dropdown
     dayButtons[date] = btn;
 
     const day = new Date(date);
@@ -241,34 +270,6 @@ async function renderSchedule() {
       const closestDay = new Date(initialDate);
       if (day.getTime() <= today.getTime() && day.getTime() > closestDay.getTime()) initialDate = date;
     }
-  });
-
-  // Timezone select dropdown
-  const tzSelectWrapper = document.createElement("div");
-  tzSelectWrapper.style.marginLeft = "20px";
-  tzSelectWrapper.style.display = "flex";
-  tzSelectWrapper.style.alignItems = "center";
-  tzSelectWrapper.innerHTML = `
-    <label style="font-size:0.8rem; color:#fff; cursor:pointer;">
-      Timezone: 
-      <select id="timezone-select"></select>
-    </label>
-  `;
-  navContainer.appendChild(tzSelectWrapper);
-
-  const tzSelect = document.getElementById("timezone-select");
-  const allTimezones = Intl.supportedValuesOf("timeZone").sort();
-  allTimezones.forEach(tz => {
-    const opt = document.createElement("option");
-    opt.value = tz;
-    opt.textContent = tz;
-    if (tz === userTimezone) opt.selected = true;
-    tzSelect.appendChild(opt);
-  });
-
-  tzSelect.addEventListener("change", () => {
-    forcedTimezone = tzSelect.value;
-    renderSchedule();
   });
 
   function highlightDay(date) {
@@ -344,6 +345,7 @@ async function renderSchedule() {
 
 renderSchedule();
 </script>
+
   
 </body>
 </html>
