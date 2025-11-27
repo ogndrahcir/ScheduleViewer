@@ -75,7 +75,6 @@ h1 {
 
 .nav-day-btn .month-day {
   font-size: 0.75rem;
-  color: #ddd;
   line-height: 1.1;
   margin-top: 2px;
 }
@@ -127,7 +126,7 @@ h1 {
 
 .show-header {
   display: grid;
-  grid-template-columns: 120px 1fr; /* logo | info */
+  grid-template-columns: 1fr 1fr; /* logo | info */
   gap: 20px;
   /* Make the header as tall as 2 run rows */
   /* Assuming each run row has a fixed height, e.g., 60px each */
