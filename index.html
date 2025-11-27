@@ -73,22 +73,30 @@ body {
 .show-header {
   display: flex;
   align-items: center;
-  justify-content: center; /* horizontally center logo + time */
-  gap: 12px;
-  margin-bottom: 4px;
+  gap: 20px; /* space between logo and info */
+  margin-bottom: 10px;
 }
 
 .show-logo {
-  height: 40px; /* adjust as needed */
+  height: 80px; /* adjust logo height */
+  object-fit: contain;
+}
+
+.show-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* left align the text */
+}
+
+.show-time {
+  font-size: 2rem;  /* big time */
+  font-weight: bold;
 }
 
 .show-subtitle {
-  text-align: center;
-  font-size: 0.85rem;
-  color: #cccccc;
-  margin-bottom: 8px;
+  font-size: 0.9rem;
+  color: #ccc;
 }
-
 
 .run-row {
   padding: 5px 0;
@@ -374,16 +382,16 @@ async function renderSchedule() {
         const groupDiv = document.createElement("div");
         groupDiv.className = "show-group";
 
-        // Build logo path with fallback
-        const logoPath = resolveLogo(showName);
-        const gdqFallback = "Logos/GDQ Logo.png";
-
+        // Determine logo path first
+        let logoPath = `Logos/${showName}.png`; // show-specific logo
+        const gdqFallback = "Logos/GDQ Logo.png"; // fallback logo
+        
         groupDiv.innerHTML = `
-          <div class="show-header" style="display:flex; align-items:center; gap:20px;">
-            <img src="${logoPath}" onerror="this.onerror=null;this.src='${gdqFallback}'" alt="Logo for ${showName}" class="show-logo" style="height:80px;">
-            <div class="show-info" style="display:flex; flex-direction:column; align-items:flex-start;">
-              <span class="show-time" data-raw-start="${rawStart}" style="font-size:2rem; font-weight:bold;"></span>
-              <span class="show-subtitle" style="font-size:0.9rem; color:#ccc;">Hosted by: ${hostName || "TBA"}</span>
+          <div class="show-header">
+            <img src="${logoPath}" onerror="this.onerror=null;this.src='${gdqFallback}'" alt="Logo for ${showName}" class="show-logo">
+            <div class="show-info">
+              <span class="show-time" data-raw-start="${rawStart}"></span>
+              <span class="show-subtitle">Hosted by: ${hostName || "TBA"}</span>
             </div>
           </div>
         `;
