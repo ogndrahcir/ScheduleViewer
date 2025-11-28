@@ -1,4 +1,4 @@
-const DATA_URL = "https://script.google.com/macros/s/AKfycbyxanGFzAWbQV4Fso__LJh5eOb4GDjBYHx6sK79FTu3ww6z0sYs603UbQeEr-aKRoK7/exec?t=" + new Date().getTime();
+const DATA_URL = "https://script.google.com/a/macros/gamesdonequick.com/s/AKfycbyxanGFzAWbQV4Fso__LJh5eOb4GDjBYHx6sK79FTu3ww6z0sYs603UbQeEr-aKRoK7/exec?t=" + new Date().getTime();
 
 // -------------------------------------------------------------
 // Load data
