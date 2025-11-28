@@ -160,13 +160,36 @@ async function renderSchedule() {
         `;
         clone.querySelector(".run-container").appendChild(runHeader);
 
+        // -------------------------------
+        // Render each run
+        // -------------------------------
         groups[key].forEach(run => {
           const runTemplate = document.getElementById("run-template");
           const runClone = document.importNode(runTemplate.content, true);
+
+          const runRow = runClone.querySelector(".run-row");
+
+          // Set run info
           runClone.querySelector(".game").textContent = run["Game"];
           runClone.querySelector(".category").textContent = run["Category"];
           runClone.querySelector(".estimate").textContent = formatEstimate(run["Estimate"]);
           runClone.querySelector(".runner").innerHTML = renderRunners(run["Runners"], run["Runner Stream"]);
+
+          // Click handler for the row
+          runRow.addEventListener("click", (e) => {
+            if (e.target.closest(".runner")) return; // ignore clicks on runner links
+
+            const runDate = new Date(run["Show Date"]);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            const url = runDate >= today
+              ? "https://www.twitch.tv/gamesdonequick"
+              : "https://www.twitch.tv/gamesdonequick/videos?filter=archives&sort=time";
+
+            window.open(url, "_blank");
+          });
+
           clone.querySelector(".run-container").appendChild(runClone);
         });
 
@@ -185,10 +208,8 @@ async function renderSchedule() {
       .map(d => ({ key: d, date: new Date(d) }))
       .sort((a,b) => a.date - b.date);
 
-    // Find today or closest past date
     let target = sortedDates.find(d => isSameDay(d.date, now));
     if (!target) {
-      // fallback to latest past date
       const pastDates = sortedDates.filter(d => d.date <= now);
       target = pastDates.length ? pastDates[pastDates.length - 1] : sortedDates[0];
     }
