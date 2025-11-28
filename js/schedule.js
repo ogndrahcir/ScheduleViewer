@@ -4,7 +4,7 @@ const DATA_URL = "https://script.google.com/macros/s/AKfycbyxanGFzAWbQV4Fso__LJh
 // Load data
 // -------------------------------------------------------------
 async function loadSchedule() {
-  const response = await fetch(DATA_URL);
+  const response = await fetch(`${DATA_URL}?t=${Date.now()}`);
   const data = await response.json();
   return data;
 }
