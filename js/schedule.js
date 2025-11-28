@@ -160,6 +160,9 @@ async function renderSchedule() {
         const img = clone.querySelector(".show-logo");
         img.src = resolveLogo(showName);
         img.onerror = () => { img.src = "Logos/GDQ Logo.png"; };
+        const link = clone.querySelector(".show-logo-link");
+        link.href = SHOW_LINKS[showName] || "https://gdq.gg";
+
 
         const info = clone.querySelector(".show-info");
         info.innerHTML = `
