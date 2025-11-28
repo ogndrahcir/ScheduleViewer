@@ -255,5 +255,7 @@ async function renderSchedule() {
     }
   })();
 }
-await loadShowLinks();
-renderSchedule();
+(async () => {
+  await loadShowLinks();
+  loadSchedule(); // or equivalent
+})();
