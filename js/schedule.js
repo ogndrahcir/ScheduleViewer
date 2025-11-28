@@ -54,6 +54,31 @@ function resolveLogo(showName) {
   return `Logos/${formattedName}.png`;
 }
 
+let SHOW_LINKS = {};
+
+async function loadShowLinks() {
+  const response = await fetch("Links/ShowLinks.csv");
+  const text = await response.text();
+
+  SHOW_LINKS = {};
+
+  text.split("\n").forEach(line => {
+    line = line.trim();
+    if (!line || line.startsWith("#")) return; // skip empty/comment lines
+
+    const parts = line.split(",");
+    if (parts.length < 2) return;
+
+    const showName = parts[0].trim();
+    const url = parts.slice(1).join(",").trim(); // supports URLs containing commas
+
+    SHOW_LINKS[showName] = url;
+  });
+
+  console.log("Loaded show links:", SHOW_LINKS);
+}
+
+
 // -------------------------------------------------------------
 // Render schedule
 // -------------------------------------------------------------
@@ -227,5 +252,5 @@ async function renderSchedule() {
     }
   })();
 }
-
+await loadShowLinks();
 renderSchedule();
