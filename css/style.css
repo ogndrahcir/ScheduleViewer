@@ -121,37 +121,40 @@ h1 {
 .show-group {
   margin-bottom: 20px;
   border-bottom: 1px solid #333;
-  /* Remove padding affecting logo scaling */
   padding-bottom: 0; 
 }
 
-/* -------- DESKTOP (default) -------- */
 .show-header {
-  display: grid;
-  grid-template-columns: auto auto auto auto;
-  grid-template-areas: ". logo info .";
-  gap: 20px;
-  height: 120px;        /* fixed header height */
-  overflow: hidden;     /* prevents logo from escaping */
-  align-items: center;  /* vertical centering */
+  display: flex;
+  justify-content: space-evenly;
+  align-items: left;
+  height: 100px;
+  margin: 0 auto;
+  max-width: 50vw;          /* middle 50% of viewport */
+  gap: 20px;                /* space between logo and info */
+}
+
+.show-logo-container {
+  width: 120px;             /* fixed width for all logos */
+  height: 100px;            /* same height as before */
+  display: flex;
+  justify-content: center;  /* center image horizontally */
+  align-items: center;      /* center image vertically */
 }
 
 .show-logo {
-  grid-area: logo;
-  width: 100%;          /* scale to fill column width */
-  height: 100%;         /* scale to fill header height */
-  max-width: 100%;      /* never exceed column width */
-  max-height: 100%;     /* never exceed header height */
-  object-fit: contain;  /* preserve aspect ratio */
-  object-position: right;
-  justify-self: end;
-  display: block;
+  max-height: 100%;         /* fit inside container height */
+  width: auto;              /* maintain aspect ratio */
 }
 
 .show-info {
-  grid-area: info;
-  align-self: center;
-  text-align: left;
+  text-align: center;
+  height: 100px;             /* full height of header */
+  width: 100%;
+  flex: 1;                  /* take remaining space in container */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .show-time {
@@ -166,67 +169,48 @@ h1 {
   margin-top: 2px;
 }
 
-/* -------- TABLET (max-width: 900px) -------- */
-@media (max-width: 900px) {
+/* -------- MOBILE -------- */
+@media (max-width: 768px) {
   .show-header {
-    grid-template-columns: auto 200px auto;
-    grid-template-areas: ". logo info";
-    height: 100px;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: left;
+    max-width: 90vw;           /* almost full width */
+    height: auto;              /* let height grow naturally */
+    gap: 10px;                 /* less spacing between logo and info */
+    align-items: center;       /* center everything horizontally */
+  }
+
+  .show-logo-container {
+    width: 40px;               /* smaller logo width */
+    height: 40px;              /* smaller logo height */
   }
 
   .show-logo {
-    object-position: center right;
-  }
-}
-
-/* -------- MOBILE (max-width: 600px) -------- */
-@media (max-width: 600px) {
-  .show-header {
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "logo"
-      "info";
-    gap: 10px;
-    height: auto;       /* let header grow naturally */
-    text-align: center;
-    padding: 10px 0;
-    overflow: hidden;   /* ensure logo stays inside header */
-    align-items: center;
-  }
-
-  .show-logo {
-    width: 100%;        /* fill mobile header width */
-    height: 100%;       /* fill header height */
-    max-width: 100%;    /* cannot exceed column/header */
-    max-height: 100%;   /* cannot exceed header height */
-    object-fit: contain;
-    object-position: center;
-    justify-self: center;
-    display: block;
+    max-height: 100%;          /* still maintain aspect ratio */
   }
 
   .show-info {
-    grid-area: info;
-    text-align: center;
-    margin-top: 5px;
+    width: 100%;               /* full width under logo */
+    height: auto;              /* let it shrink */
   }
 
   .show-time {
-    font-size: 1.6rem;
+    font-size: 1.5rem;         /* smaller font for mobile */
   }
 
   .show-subtitle {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
   }
 }
+
 
 /* ============================================================== 
    Run Header Row (Sticky) 
    ============================================================== */
 .run-header-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 2fr;
+  grid-template-columns: 2fr 2fr 2fr;
   font-weight: bold;
   border-bottom: 1px solid #555;
   padding: 8px 0;
@@ -260,7 +244,7 @@ h1 {
 }
 
 .game {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: bold;
   color: #ffffff;
   margin-bottom: 4px;
@@ -272,13 +256,14 @@ h1 {
 }
 
 .estimate {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: bold;
   color: #ffffff;
   text-align: center;
 }
 
 .runner {
+  font-size: 22px;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-start;
@@ -293,5 +278,5 @@ h1 {
   color: #ffffff;
   border-radius: 12px;
   text-decoration: none;
-  font-size: 1.5em;
+  font-size: 1.2em;
 }
