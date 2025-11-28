@@ -175,6 +175,36 @@ async function renderSchedule() {
 
     container.appendChild(dayDiv);
   });
+
+  // -------------------------------------------------------------
+  // Scroll to current day or fallback to most recent past day
+  // -------------------------------------------------------------
+  (function scrollToCurrentOrPastDay() {
+    const now = new Date();
+    const sortedDates = Object.keys(byDate)
+      .map(d => ({ key: d, date: new Date(d) }))
+      .sort((a,b) => a.date - b.date);
+
+    // Find today or closest past date
+    let target = sortedDates.find(d => isSameDay(d.date, now));
+    if (!target) {
+      // fallback to latest past date
+      const pastDates = sortedDates.filter(d => d.date <= now);
+      target = pastDates.length ? pastDates[pastDates.length - 1] : sortedDates[0];
+    }
+
+    if (target) {
+      const dayDiv = document.getElementById("day-" + target.key.replace(/\//g, "-"));
+      if (dayDiv) dayDiv.scrollIntoView({ behavior: "smooth", block: "start" });
+      highlightDay(target.key);
+    }
+
+    function isSameDay(d1, d2) {
+      return d1.getFullYear() === d2.getFullYear() &&
+             d1.getMonth() === d2.getMonth() &&
+             d1.getDate() === d2.getDate();
+    }
+  })();
 }
 
 renderSchedule();
