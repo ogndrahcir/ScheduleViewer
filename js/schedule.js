@@ -1,4 +1,4 @@
-const DATA_URL = "https://script.google.com/a/macros/gamesdonequick.com/s/AKfycbyxanGFzAWbQV4Fso__LJh5eOb4GDjBYHx6sK79FTu3ww6z0sYs603UbQeEr-aKRoK7/exec?t=" + new Date().getTime();
+const DATA_URL = "https://script.google.com/macros/s/AKfycbyxanGFzAWbQV4Fso__LJh5eOb4GDjBYHx6sK79FTu3ww6z0sYs603UbQeEr-aKRoK7/exec"
 
 // -------------------------------------------------------------
 // Load data
@@ -53,31 +53,6 @@ function resolveLogo(showName) {
   const formattedName = showName.replace(/[/\\?%*:|"<>]/g, "");
   return `Logos/${formattedName}.png`;
 }
-
-let SHOW_LINKS = {};
-
-async function loadShowLinks() {
-  const response = await fetch("Links/ShowLinks.csv");
-  const text = await response.text();
-
-  SHOW_LINKS = {};
-
-  text.split("\n").forEach(line => {
-    line = line.trim();
-    if (!line || line.startsWith("#")) return; // skip empty/comment lines
-
-    const parts = line.split(",");
-    if (parts.length < 2) return;
-
-    const showName = parts[0].trim();
-    const url = parts.slice(1).join(",").trim(); // supports URLs containing commas
-
-    SHOW_LINKS[showName] = url;
-  });
-
-  console.log("Loaded show links:", SHOW_LINKS);
-}
-
 
 // -------------------------------------------------------------
 // Render schedule
@@ -160,9 +135,6 @@ async function renderSchedule() {
         const img = clone.querySelector(".show-logo");
         img.src = resolveLogo(showName);
         img.onerror = () => { img.src = "Logos/GDQ Logo.png"; };
-        const link = clone.querySelector(".show-logo-link");
-        link.href = SHOW_LINKS[showName] || "https://gdq.gg";
-
 
         const info = clone.querySelector(".show-info");
         info.innerHTML = `
@@ -255,7 +227,5 @@ async function renderSchedule() {
     }
   })();
 }
-(async () => {
-  await loadShowLinks();
-  loadSchedule(); // or equivalent
-})();
+
+renderSchedule();
