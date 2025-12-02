@@ -211,7 +211,7 @@ h1 {
    ============================================================== */
 .run-header-row {
   display: grid;
-  grid-template-columns: 2fr 2fr 2fr;
+  grid-template-columns: 2fr 1fr 1fr 2fr;
   font-weight: bold;
   border-bottom: 1px solid #555;
   padding: 8px 0;
@@ -226,7 +226,7 @@ h1 {
    ============================================================== */
 .run-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 2fr;
+  grid-template-columns: 2fr 1fr 1fr 2fr;
   align-items: center;
   padding: 8px;
   margin-bottom: 6px;
@@ -256,11 +256,19 @@ h1 {
   font-size: 14px;
 }
 
+.run-start {
+  font-size: 22px;
+  font-weight: bold;
+  color: #ffffff;
+  text-align: left;
+}
+
+
 .estimate {
   font-size: 22px;
   font-weight: bold;
   color: #ffffff;
-  text-align: center;
+  text-align: left;
 }
 
 .runner {

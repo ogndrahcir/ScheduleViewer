@@ -55,6 +55,27 @@ function resolveLogo(showName) {
 }
 
 // -------------------------------------------------------------
+// Helpers
+// -------------------------------------------------------------
+function parseEstimateToMs(raw) {
+  if (!raw) return 0;
+  const d = new Date(raw);
+  return (
+    d.getHours() * 3600000 +
+    d.getMinutes() * 60000 +
+    d.getSeconds() * 1000
+  );
+}
+
+function formatRunStart(d) {
+  return d.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  });
+}
+
+// -------------------------------------------------------------
 // Render schedule
 // -------------------------------------------------------------
 async function renderSchedule() {
@@ -64,7 +85,7 @@ async function renderSchedule() {
   // Group rows by date
   rows.forEach(r => {
     const { dayName, monthDay } = formatShowDateForNavbar(r["Show Date"]);
-    const dateKey = r["Show Date"]; // use original for IDs
+    const dateKey = r["Show Date"];
     if (!byDate[dateKey]) byDate[dateKey] = { rows: [], dayName, monthDay };
     byDate[dateKey].rows.push(r);
   });
@@ -73,12 +94,11 @@ async function renderSchedule() {
   const container = document.getElementById("schedule");
   container.innerHTML = "";
 
-  // Remove old buttons
   [...navContainer.querySelectorAll("button")].forEach(b => b.remove());
 
   const dayButtons = {};
 
-  // Build navbar buttons
+  // Navbar buttons
   Object.keys(byDate).sort().forEach(dateKey => {
     const btn = document.createElement("button");
     btn.className = "nav-day-btn";
@@ -145,39 +165,63 @@ async function renderSchedule() {
         info.style.flexDirection = "column";
         info.style.alignItems = "center";
 
-        clone.querySelector(".show-header").style.display = "grid";
-        clone.querySelector(".show-header").style.gridTemplateColumns = "120px 1fr";
-        clone.querySelector(".show-header").style.justifyContent = "center";
-        clone.querySelector(".show-header").style.alignItems = "center";
-        clone.querySelector(".show-time").style.color = "#ffffff";
+        const header = clone.querySelector(".show-header");
+        header.style.display = "grid";
+        header.style.gridTemplateColumns = "120px 1fr";
+        header.style.justifyContent = "center";
+        header.style.alignItems = "center";
 
+        // ---------------------------------------------------
+        // FIXED 4-column header
+        // ---------------------------------------------------
         const runHeader = document.createElement("div");
         runHeader.className = "run-header-row";
+        runHeader.style.gridTemplateColumns = "2fr 1fr 1fr 2fr";
         runHeader.innerHTML = `
-          <div class="game">Game Info</div>
-          <div class="estimate">Estimate</div>
-          <div class="runner">Runner(s)</div>
+          <div>Game Info</div>
+          <div>Estimated Start Time</div>
+          <div>Estimate</div>
+          <div>Runner(s)</div>
         `;
         clone.querySelector(".run-container").appendChild(runHeader);
 
-        // -------------------------------
-        // Render each run
-        // -------------------------------
+        // ---------------------------------------------------
+        // Calculate run start times WITH 10-minute setup (2nd+)
+        // ---------------------------------------------------
+		let baseTime = new Date(rawStart);
+
+		groups[key].forEach((run, i) => {
+		  if (i > 0) baseTime = new Date(baseTime.getTime() + 600000); // add 10 min setup
+
+		  run._computedStart = new Date(baseTime);
+
+		  const estimateMs = parseEstimateToMs(run["Estimate"]);
+		  baseTime = new Date(baseTime.getTime() + estimateMs); // add run duration
+		});
+
+        // ---------------------------------------------------
+        // Render runs (4-column grid)
+        // ---------------------------------------------------
         groups[key].forEach(run => {
           const runTemplate = document.getElementById("run-template");
           const runClone = document.importNode(runTemplate.content, true);
-
           const runRow = runClone.querySelector(".run-row");
 
-          // Set run info
+          runRow.style.gridTemplateColumns = "2fr 1fr 1fr 2fr";
+
+          // New start time column
+          const startDiv = document.createElement("div");
+          startDiv.className = "run-start";
+          startDiv.textContent = formatRunStart(run._computedStart);
+          runRow.insertBefore(startDiv, runRow.children[1]);
+
           runClone.querySelector(".game").textContent = run["Game"];
           runClone.querySelector(".category").textContent = run["Category"];
           runClone.querySelector(".estimate").textContent = formatEstimate(run["Estimate"]);
           runClone.querySelector(".runner").innerHTML = renderRunners(run["Runners"], run["Runner Stream"]);
 
-          // Click handler for the row
           runRow.addEventListener("click", (e) => {
-            if (e.target.closest(".runner")) return; // ignore clicks on runner links
+            if (e.target.closest(".runner")) return;
 
             const runDate = new Date(run["Show Date"]);
             const today = new Date();
@@ -199,9 +243,7 @@ async function renderSchedule() {
     container.appendChild(dayDiv);
   });
 
-  // -------------------------------------------------------------
-  // Scroll to current day or fallback to most recent past day
-  // -------------------------------------------------------------
+  // Scroll to today or nearest past day
   (function scrollToCurrentOrPastDay() {
     const now = new Date();
     const sortedDates = Object.keys(byDate)
@@ -210,8 +252,8 @@ async function renderSchedule() {
 
     let target = sortedDates.find(d => isSameDay(d.date, now));
     if (!target) {
-      const pastDates = sortedDates.filter(d => d.date <= now);
-      target = pastDates.length ? pastDates[pastDates.length - 1] : sortedDates[0];
+      const past = sortedDates.filter(d => d.date <= now);
+      target = past.length ? past[past.length - 1] : sortedDates[0];
     }
 
     if (target) {
@@ -220,10 +262,10 @@ async function renderSchedule() {
       highlightDay(target.key);
     }
 
-    function isSameDay(d1, d2) {
-      return d1.getFullYear() === d2.getFullYear() &&
-             d1.getMonth() === d2.getMonth() &&
-             d1.getDate() === d2.getDate();
+    function isSameDay(a, b) {
+      return a.getFullYear() === b.getFullYear() &&
+             a.getMonth() === b.getMonth() &&
+             a.getDate() === b.getDate();
     }
   })();
 }
