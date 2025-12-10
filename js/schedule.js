@@ -33,14 +33,35 @@ function formatShowStart(rawStart) {
   return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
 }
 
-function formatEstimate(rawEstimate) {
-  if (!rawEstimate) return "";
+function formatEstimate(raw) {
+  if (!raw) return "";
 
-  const parts = rawEstimate.split(":");
-  let h = Number(parts[0] || 0);
-  let m = Number(parts[1] || 0);
-  let s = Number(parts[2] || 0);
+  // If it's a number (serial or fractional day)
+  if (typeof raw === "number") {
+    const totalMs = raw * 24 * 60 * 60 * 1000;
+    return msToHMS(totalMs);
+  }
 
+  // If it's an ISO timestamp coming from Sheets
+  if (typeof raw === "string" && raw.includes("T")) {
+    const d = new Date(raw);
+    if (!isNaN(d)) {
+      return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+    }
+  }
+
+  // If it's already formatted like HH:MM or HH:MM:SS
+  if (typeof raw === "string") {
+    return raw;
+  }
+
+  return "";
+}
+
+function msToHMS(ms) {
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
   return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
@@ -65,20 +86,40 @@ function resolveLogo(showName) {
 function parseEstimateToMs(raw) {
   if (!raw) return 0;
 
-  const parts = raw.split(":");
-  const h = Number(parts[0] || 0);
-  const m = Number(parts[1] || 0);
-  const s = Number(parts[2] || 0);
+  // If it's a number (Google serial date / minutes), handle it
+  if (typeof raw === "number") {
+    // Sheets serials: 1 day = 86400000 ms
+    // Duration serials are often fractional
+    return raw * 24 * 60 * 60 * 1000;
+  }
 
-  return h * 3600000 + m * 60000 + s * 1000;
-}
+  // If it's an ISO-like timestamp
+  if (typeof raw === "string" && raw.includes("T")) {
+    const d = new Date(raw);
+    if (!isNaN(d)) {
+      return (
+        d.getHours() * 3600000 +
+        d.getMinutes() * 60000 +
+        d.getSeconds() * 1000
+      );
+    }
+  }
 
-function formatRunStart(d) {
-  return d.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true
-  });
+  // If it's standard HH:MM or HH:MM:SS
+  if (typeof raw === "string") {
+    const parts = raw.split(":").map(Number);
+
+    if (parts.length === 3) {
+      const [h, m, s] = parts;
+      return h * 3600000 + m * 60000 + s * 1000;
+    }
+    if (parts.length === 2) {
+      const [h, m] = parts;
+      return h * 3600000 + m * 60000;
+    }
+  }
+
+  return 0; // fallback to avoid NaN
 }
 
 // -------------------------------------------------------------
