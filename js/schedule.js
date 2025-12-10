@@ -64,12 +64,13 @@ function resolveLogo(showName) {
 // -------------------------------------------------------------
 function parseEstimateToMs(raw) {
   if (!raw) return 0;
-  const d = new Date(raw);
-  return (
-    d.getHours() * 3600000 +
-    d.getMinutes() * 60000 +
-    d.getSeconds() * 1000
-  );
+
+  const parts = raw.split(":");
+  const h = Number(parts[0] || 0);
+  const m = Number(parts[1] || 0);
+  const s = Number(parts[2] || 0);
+
+  return h * 3600000 + m * 60000 + s * 1000;
 }
 
 function formatRunStart(d) {
