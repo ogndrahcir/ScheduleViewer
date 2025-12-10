@@ -35,7 +35,7 @@ function formatShowStart(rawStart) {
 
 function formatEstimate(rawEstimate) {
   if (!rawEstimate) return "";
-  const d = rawEstimate;
+  const d = new Date(rawEstimate);
   return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
 }
 
@@ -59,7 +59,7 @@ function resolveLogo(showName) {
 // -------------------------------------------------------------
 function parseEstimateToMs(raw) {
   if (!raw) return 0;
-  const d = raw;
+  const d = new Date(raw);
   return (
     d.getHours() * 3600000 +
     d.getMinutes() * 60000 +
