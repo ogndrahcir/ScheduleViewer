@@ -15,6 +15,7 @@ async function loadSchedule() {
 function formatShowDateForDisplay(rawDate) {
   if (!rawDate) return "";
   const d = new Date(rawDate);
+  if (isNaN(d)) return "";
   const options = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
   return d.toLocaleDateString("en-US", options);
 }
@@ -22,57 +23,77 @@ function formatShowDateForDisplay(rawDate) {
 function formatShowDateForNavbar(rawDate) {
   if (!rawDate) return { dayName: "", monthDay: "" };
   const d = new Date(rawDate);
+  if (isNaN(d)) return { dayName: "", monthDay: "" };
   const dayName = d.toLocaleDateString("en-US", { weekday: "long" });
   const monthDay = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   return { dayName, monthDay };
 }
 
-function formatShowStart(rawStart) {
-  if (!rawStart) return "";
-  const d = new Date(rawStart);
-  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
+// Parse Show Start Time (Eastern)
+function parseShowStart(rawStartUTC) {
+  if (!rawStartUTC) return null;
+  const d = new Date(rawStartUTC);
+  if (isNaN(d)) return null;
+  // Shift UTC to Eastern Time (UTC-5)
+  d.setHours(d.getUTCHours() - 5);
+  return d;
 }
 
-function formatEstimate(rawEstimate) {
-  if (!rawEstimate) return "";
-  const d = new Date(rawEstimate);
-  return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
+function formatRunStart(d) {
+  if (!d) return "";
+  const dateObj = d instanceof Date ? d : new Date(d);
+  if (isNaN(dateObj)) return "";
+  return dateObj.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
-function renderRunners(runnerNames, runnerStreams) {
-  const names = runnerNames.split(",").map(s => s.trim());
-  const streams = runnerStreams.split(",").map(s => s.trim());
+function renderRunners(runnerNames = "", runnerStreams = "") {
+  if (!runnerNames) return "";
+  const names = String(runnerNames).split(",").map(s => s.trim()).filter(Boolean);
+  const streams = String(runnerStreams || "").split(",").map(s => s.trim());
   return names.map((name, i) => {
     let url = streams[i] || "#";
-    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+    if (url && !/^https?:\/\//i.test(url)) url = "https://" + url;
     return `<a href="${url}" target="_blank" class="runner-pill">${name}</a>`;
   }).join(" ");
 }
 
 function resolveLogo(showName) {
+  if (!showName) return "Logos/GDQ Logo.png";
   const formattedName = showName.replace(/[/\\?%*:|"<>]/g, "");
   return `Logos/${formattedName}.png`;
 }
 
 // -------------------------------------------------------------
-// Helpers
+// Estimate helpers
 // -------------------------------------------------------------
-function parseEstimateToMs(raw) {
-  if (!raw) return 0;
+function parseEstimate(raw) {
+  if (!raw) return "0:00:00";
   const d = new Date(raw);
-  return (
-    d.getHours() * 3600000 +
-    d.getMinutes() * 60000 +
-    d.getSeconds() * 1000
-  );
+  if (isNaN(d)) return "0:00:00";
+
+  // Get hours, minutes, seconds in UTC
+  let h = d.getUTCHours();
+  const m = d.getUTCMinutes();
+  const s = d.getUTCSeconds();
+
+  // Subtract 5 hours (the 'extra' offset you mentioned)
+  h = h - 5;
+  if (h < 0) h += 24; // wrap around if negative
+
+  return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
 }
 
-function formatRunStart(d) {
-  return d.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true
-  });
+
+function parseEstimateToMs(raw) {
+  if (!raw) return 0;
+  const parts = String(raw).split(":").map(Number);
+  if (parts.length === 3) return parts[0]*3600000 + parts[1]*60000 + parts[2]*1000;
+  if (parts.length === 2) return parts[0]*3600000 + parts[1]*60000;
+  return 0;
+}
+
+function addDurationToDate(date, ms) {
+  return new Date(date.getTime() + ms);
 }
 
 // -------------------------------------------------------------
@@ -82,10 +103,11 @@ async function renderSchedule() {
   const rows = await loadSchedule();
   const byDate = {};
 
-  // Group rows by date
+  // Group rows by Show Date
   rows.forEach(r => {
-    const { dayName, monthDay } = formatShowDateForNavbar(r["Show Date"]);
-    const dateKey = r["Show Date"];
+    const dateRaw = r["Show Date"];
+    const { dayName, monthDay } = formatShowDateForNavbar(dateRaw);
+    const dateKey = dateRaw ? dateRaw.split("T")[0] : "Invalid Date";
     if (!byDate[dateKey]) byDate[dateKey] = { rows: [], dayName, monthDay };
     byDate[dateKey].rows.push(r);
   });
@@ -93,33 +115,26 @@ async function renderSchedule() {
   const navContainer = document.getElementById("schedule-nav");
   const container = document.getElementById("schedule");
   container.innerHTML = "";
-
   [...navContainer.querySelectorAll("button")].forEach(b => b.remove());
-
   const dayButtons = {};
 
-  // Navbar buttons
+  // Create navbar
   Object.keys(byDate).sort().forEach(dateKey => {
     const btn = document.createElement("button");
     btn.className = "nav-day-btn";
-
     const dayDiv = document.createElement("div");
     dayDiv.textContent = byDate[dateKey].dayName;
     dayDiv.className = "day-name";
-
     const monthDiv = document.createElement("div");
     monthDiv.textContent = byDate[dateKey].monthDay;
     monthDiv.className = "month-day";
-
     btn.appendChild(dayDiv);
     btn.appendChild(monthDiv);
-
     btn.onclick = () => {
       const dayDiv = document.getElementById("day-" + dateKey.replace(/\//g, "-"));
       if (dayDiv) dayDiv.scrollIntoView({ behavior: "smooth", block: "start" });
       highlightDay(dateKey);
     };
-
     navContainer.appendChild(btn);
     dayButtons[dateKey] = btn;
   });
@@ -139,106 +154,92 @@ async function renderSchedule() {
     const runs = byDate[dateKey].rows;
     const groups = {};
 
+    // Group runs by Show Name
     runs.forEach(run => {
-      const key = `${run["Show Start (Eastern)"]}|${run["Show"]}|${run["Host"]}`;
+      const key = `${run["Show"] || ""}|${dateKey}`;
       if (!groups[key]) groups[key] = [];
       groups[key].push(run);
     });
 
-    Object.keys(groups)
-      .sort((a,b) => new Date(a.split("|")[0]) - new Date(b.split("|")[0]))
-      .forEach(key => {
-        const [rawStart, showName, hostName] = key.split("|");
-        const showTemplate = document.getElementById("show-template");
-        const clone = document.importNode(showTemplate.content, true);
+    // Render shows
+    Object.keys(groups).sort().forEach(key => {
+      const [showName, _] = key.split("|");
+      const showTemplate = document.getElementById("show-template");
+      const clone = document.importNode(showTemplate.content, true);
+      const img = clone.querySelector(".show-logo");
+      img.src = resolveLogo(showName);
+      img.onerror = () => { img.src = "Logos/GDQ Logo.png"; };
+      const info = clone.querySelector(".show-info");
 
-        const img = clone.querySelector(".show-logo");
-        img.src = resolveLogo(showName);
-        img.onerror = () => { img.src = "Logos/GDQ Logo.png"; };
+      // First run's start time
+      const firstRun = groups[key][0];
+      const startDateObj = parseShowStart(firstRun["Show Start (Eastern)"]);
+      info.innerHTML = `
+        <span class="show-time">${formatRunStart(startDateObj)}</span>
+        <span class="show-subtitle">Hosted by: ${firstRun["Host"] || "TBA"}</span>
+      `;
+      info.style.display = "flex";
+      info.style.flexDirection = "column";
+      info.style.alignItems = "center";
 
-        const info = clone.querySelector(".show-info");
-        info.innerHTML = `
-          <span class="show-time">${formatShowStart(rawStart)}</span>
-          <span class="show-subtitle">Hosted by: ${hostName || "TBA"}</span>
-        `;
-        info.style.display = "flex";
-        info.style.flexDirection = "column";
-        info.style.alignItems = "center";
+      const header = clone.querySelector(".show-header");
+      header.style.display = "grid";
+      header.style.gridTemplateColumns = "120px 1fr";
+      header.style.justifyContent = "center";
+      header.style.alignItems = "center";
 
-        const header = clone.querySelector(".show-header");
-        header.style.display = "grid";
-        header.style.gridTemplateColumns = "120px 1fr";
-        header.style.justifyContent = "center";
-        header.style.alignItems = "center";
+      const runHeader = document.createElement("div");
+      runHeader.className = "run-header-row";
+      runHeader.style.gridTemplateColumns = "2fr 1fr 1fr 2fr";
+      runHeader.innerHTML = `
+        <div>Game Info</div>
+        <div>Estimated Start Time</div>
+        <div>Estimate</div>
+        <div>Runner(s)</div>
+      `;
+      clone.querySelector(".run-container").appendChild(runHeader);
 
-        // ---------------------------------------------------
-        // FIXED 4-column header
-        // ---------------------------------------------------
-        const runHeader = document.createElement("div");
-        runHeader.className = "run-header-row";
-        runHeader.style.gridTemplateColumns = "2fr 1fr 1fr 2fr";
-        runHeader.innerHTML = `
-          <div>Game Info</div>
-          <div>Estimated Start Time</div>
-          <div>Estimate</div>
-          <div>Runner(s)</div>
-        `;
-        clone.querySelector(".run-container").appendChild(runHeader);
+      // Compute run start times
+      let baseTime = startDateObj;
+      groups[key].forEach((run, i) => {
+        if (i > 0) baseTime = new Date(baseTime.getTime() + 600000); // 10 min setup
+        run._computedStart = new Date(baseTime);
+        const durationMs = parseEstimateToMs(parseEstimate(run["Estimate"]));
+        baseTime = addDurationToDate(baseTime, durationMs);
+      });
 
-        // ---------------------------------------------------
-        // Calculate run start times WITH 10-minute setup (2nd+)
-        // ---------------------------------------------------
-		let baseTime = new Date(rawStart);
+      // Render runs
+      groups[key].forEach(run => {
+        const runTemplate = document.getElementById("run-template");
+        const runClone = document.importNode(runTemplate.content, true);
+        const runRow = runClone.querySelector(".run-row");
+        runRow.style.gridTemplateColumns = "2fr 1fr 1fr 2fr";
 
-		groups[key].forEach((run, i) => {
-		  if (i > 0) baseTime = new Date(baseTime.getTime() + 600000); // add 10 min setup
+        const startDiv = document.createElement("div");
+        startDiv.className = "run-start";
+        startDiv.textContent = formatRunStart(run._computedStart);
+        runRow.insertBefore(startDiv, runRow.children[1]);
 
-		  run._computedStart = new Date(baseTime);
+        runClone.querySelector(".game").textContent = run["Game"] || "";
+        runClone.querySelector(".category").textContent = run["Category"] || "";
+        runClone.querySelector(".estimate").textContent = parseEstimate(run["Estimate"]);
+        runClone.querySelector(".runner").innerHTML = renderRunners(run["Runners"], run["Runner Stream"]);
 
-		  const estimateMs = parseEstimateToMs(run["Estimate"]);
-		  baseTime = new Date(baseTime.getTime() + estimateMs); // add run duration
-		});
-
-        // ---------------------------------------------------
-        // Render runs (4-column grid)
-        // ---------------------------------------------------
-        groups[key].forEach(run => {
-          const runTemplate = document.getElementById("run-template");
-          const runClone = document.importNode(runTemplate.content, true);
-          const runRow = runClone.querySelector(".run-row");
-
-          runRow.style.gridTemplateColumns = "2fr 1fr 1fr 2fr";
-
-          // New start time column
-          const startDiv = document.createElement("div");
-          startDiv.className = "run-start";
-          startDiv.textContent = formatRunStart(run._computedStart);
-          runRow.insertBefore(startDiv, runRow.children[1]);
-
-          runClone.querySelector(".game").textContent = run["Game"];
-          runClone.querySelector(".category").textContent = run["Category"];
-          runClone.querySelector(".estimate").textContent = formatEstimate(run["Estimate"]);
-          runClone.querySelector(".runner").innerHTML = renderRunners(run["Runners"], run["Runner Stream"]);
-
-          runRow.addEventListener("click", (e) => {
-            if (e.target.closest(".runner")) return;
-
-            const runDate = new Date(run["Show Date"]);
-            const today = new Date();
-            today.setHours(0,0,0,0);
-
-            const url = runDate >= today
-              ? "https://www.twitch.tv/gamesdonequick"
-              : "https://www.twitch.tv/gamesdonequick/videos?filter=archives&sort=time";
-
-            window.open(url, "_blank");
-          });
-
-          clone.querySelector(".run-container").appendChild(runClone);
+        runRow.addEventListener("click", (e) => {
+          if (e.target.closest(".runner")) return;
+          const runDate = new Date(run["Show Date"]);
+          const today = new Date(); today.setHours(0,0,0,0);
+          const url = runDate >= today
+            ? "https://www.twitch.tv/gamesdonequick"
+            : "https://www.twitch.tv/gamesdonequick/videos?filter=archives&sort=time";
+          window.open(url, "_blank");
         });
 
-        dayDiv.appendChild(clone);
+        clone.querySelector(".run-container").appendChild(runClone);
       });
+
+      dayDiv.appendChild(clone);
+    });
 
     container.appendChild(dayDiv);
   });
@@ -255,7 +256,6 @@ async function renderSchedule() {
       const past = sortedDates.filter(d => d.date <= now);
       target = past.length ? past[past.length - 1] : sortedDates[0];
     }
-
     if (target) {
       const dayDiv = document.getElementById("day-" + target.key.replace(/\//g, "-"));
       if (dayDiv) dayDiv.scrollIntoView({ behavior: "smooth", block: "start" });
