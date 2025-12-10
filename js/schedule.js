@@ -35,8 +35,13 @@ function formatShowStart(rawStart) {
 
 function formatEstimate(rawEstimate) {
   if (!rawEstimate) return "";
-  const d = new Date(rawEstimate);
-  return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
+
+  const parts = rawEstimate.split(":");
+  let h = Number(parts[0] || 0);
+  let m = Number(parts[1] || 0);
+  let s = Number(parts[2] || 0);
+
+  return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 function renderRunners(runnerNames, runnerStreams) {
