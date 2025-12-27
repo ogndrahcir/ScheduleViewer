@@ -242,7 +242,10 @@ async function renderSchedule() {
     // Group runs by Show so multiple runs for same show are in same block
     const groups = {};
     runs.forEach(run => {
-      const key = `${run["Show"] || ""}|${dateKey}`;
+      const show = run["Show"] || "";
+      const host = run["Host"] || "TBA";
+      const key = `${show}|${host}|${dateKey}`;
+    
       if (!groups[key]) groups[key] = [];
       groups[key].push(run);
     });
