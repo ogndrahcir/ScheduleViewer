@@ -260,7 +260,7 @@ async function renderSchedule() {
         return aDate - bDate;
       })
       .forEach(key => {
-        const [showName] = key.split("|");
+        const [showName, hostName] = key.split("|");
         const showTemplate = document.getElementById("show-template");
         const clone = document.importNode(showTemplate.content, true);
 
@@ -275,9 +275,9 @@ async function renderSchedule() {
         const showTime = formatTimeAsET(firstStartUtcInstant);
 
         info.innerHTML = `
-          <span class="show-time">${showTime}</span>
-          <span class="show-subtitle">Hosted by: ${firstRun["Host"] || "TBA"}</span>
-        `;
+        <span class="show-time">${showTime}</span>
+        <span class="show-subtitle">Hosted by: ${hostName}</span>
+      `;
         info.style.display = "flex";
         info.style.flexDirection = "column";
         info.style.alignItems = "center";
