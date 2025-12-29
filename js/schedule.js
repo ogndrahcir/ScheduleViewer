@@ -1,4 +1,4 @@
-// schedule.js - full rewrite (ET-first, timezone-proof, hardcoded links + estimated start/estimate)
+// schedule.js - ET-first, timezone-proof, hostLinks updated
 
 // -------------------------------------------------------------
 // DATA URL
@@ -29,23 +29,23 @@ const showLinks = {
 };
 
 const hostLinks = {
-  "satanherself": "SatanIsntHerself",
-  "danejerus": "danejerus",
-  "mr_shasta": "Mr_Shasta",
-  "asuka424": "Asuka424",
-  "nickrpgreen": "NickRPGreen",
-  "kiara_tv": "Kiara_TV",
-  "anarchy": "anarchyasf",
-  "quacksilver": "QuacksilverPlays",
-  "ateatree": "ateatree",
-  "helix": "Helix13_",
-  "ambercyprian": "AmberCyprian",
-  "queuety": "Queuety",
-  "skybilz": "Skybilz",
-  "ecdycis": "Ecdycis",
-  "ozmourn": "Ozmourn",
-  "swooce": "swooce19",
-  "sparkle": "Sparkle"
+  "satanherself": "https://twitch.tv/SatanIsntHerself",
+  "danejerus": "https://twitch.tv/danejerus",
+  "mr_shasta": "https://twitch.tv/Mr_Shasta",
+  "asuka424": "https://twitch.tv/Asuka424",
+  "nickrpgreen": "https://twitch.tv/NickRPGreen",
+  "kiara_tv": "https://twitch.tv/Kiara_TV",
+  "anarchy": "https://twitch.tv/anarchyasf",
+  "quacksilver": "https://twitch.tv/QuacksilverPlays",
+  "ateatree": "https://twitch.tv/ateatree",
+  "helix": "https://twitch.tv/Helix13_",
+  "ambercyprian": "https://twitch.tv/AmberCyprian",
+  "queuety": "https://twitch.tv/Queuety",
+  "skybilz": "https://twitch.tv/Skybilz",
+  "ecdycis": "https://twitch.tv/Ecdycis",
+  "ozmourn": "https://twitch.tv/Ozmourn",
+  "swooce": "https://twitch.tv/swooce19",
+  "sparkle": "https://twitch.tv/Sparkle"
 };
 
 // -------------------------------------------------------------
@@ -62,7 +62,7 @@ async function loadSchedule() {
 // -------------------------------------------------------------
 function getEasternParts(utcInput) {
   if (!utcInput) return null;
-  const d = (utcInput instanceof Date) ? utcInput : new Date(utcInput);
+  const d = utcInput instanceof Date ? utcInput : new Date(utcInput);
   if (isNaN(d)) return null;
 
   const fmt = new Intl.DateTimeFormat("en-US", {
@@ -99,7 +99,7 @@ function buildDateKeyFromParts(parts) {
 
 function formatTimeAsET(utcDate) {
   if (!utcDate) return "";
-  const d = (utcDate instanceof Date) ? utcDate : new Date(utcDate);
+  const d = utcDate instanceof Date ? utcDate : new Date(utcDate);
   if (isNaN(d)) return "";
   return d.toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -111,7 +111,7 @@ function formatTimeAsET(utcDate) {
 
 function formatNavbarPartsFromUtc(utcDate) {
   if (!utcDate) return { dayName: "", monthDay: "" };
-  const d = (utcDate instanceof Date) ? utcDate : new Date(utcDate);
+  const d = utcDate instanceof Date ? utcDate : new Date(utcDate);
   if (isNaN(d)) return { dayName: "", monthDay: "" };
   return {
     dayName: d.toLocaleDateString("en-US", { weekday: "long", timeZone: "America/New_York" }),
@@ -126,14 +126,13 @@ function parseEstimatePartsFromTimestamp(raw) {
   if (!raw) return { h: 0, m: 0, s: 0 };
   const d = new Date(raw);
   if (!isNaN(d.getTime())) {
-    let h = d.getUTCHours() - 5;
+    let h = d.getUTCHours() - 5; // adjust 5 hours
     const m = d.getUTCMinutes();
     const s = d.getUTCSeconds();
     while (h < 0) h += 24;
     return { h, m, s };
   }
-
-  const parts = String(raw).trim().split(":").map(p => Number(p));
+  const parts = String(raw).trim().split(":").map(Number);
   if (parts.length === 3) return { h: parts[0], m: parts[1], s: parts[2] };
   if (parts.length === 2) return { h: 0, m: parts[0], s: parts[1] };
   return { h: 0, m: 0, s: 0 };
@@ -165,9 +164,8 @@ function resolveLogo(showName) {
 function renderRunners(runnerNames = "", runnerStreams = "") {
   if (!runnerNames) return "";
   const names = String(runnerNames).split(",").map(s => s.trim()).filter(Boolean);
-  const streams = String(runnerStreams || "").split(",").map(s => s.trim());
-  return names.map((name, i) => {
-    let url = streams[i] || hostLinks[name.toLowerCase()] ? `https://twitch.tv/${hostLinks[name.toLowerCase()]}` : "#";
+  return names.map(name => {
+    const url = hostLinks[name.toLowerCase()] || "#";
     return `<a href="${url}" target="_blank" class="runner-pill">${name}</a>`;
   }).join(" ");
 }
@@ -183,6 +181,7 @@ async function renderSchedule() {
   rows.forEach(r => {
     const rawShowDate = r["Show Date"];
     if (!rawShowDate) return;
+
     const etParts = getEasternParts(rawShowDate);
     const dateKey = buildDateKeyFromParts(etParts);
     const { dayName, monthDay } = formatNavbarPartsFromUtc(rawShowDate);
@@ -229,9 +228,6 @@ async function renderSchedule() {
     if (dayButtons[dateKey]) dayButtons[dateKey].classList.add("active");
   }
 
-  // -----------------------------
-  // Render day blocks and runs
-  // -----------------------------
   Object.keys(byDate).sort().forEach(dateKey => {
     const dayBlock = document.createElement("div");
     dayBlock.className = "day-block";
@@ -256,7 +252,6 @@ async function renderSchedule() {
         const showTemplate = document.getElementById("show-template");
         const clone = document.importNode(showTemplate.content, true);
 
-        // Logo
         const img = clone.querySelector(".show-logo");
         img.src = resolveLogo(showName);
         img.onerror = () => { img.src = "Logos/GDQ Logo.png"; };
@@ -278,10 +273,18 @@ async function renderSchedule() {
         info.style.display = "flex";
         info.style.flexDirection = "column";
         info.style.alignItems = "center";
-        info.innerHTML = `
-          <span class="show-time">${showTime}</span>
-          <span class="show-subtitle">Hosted by: ${renderRunners(hostName)}</span>
-        `;
+
+        // get host URL from hostLinks (lowercase)
+		const hostUrl = hostLinks[hostName.toLowerCase()] || "https://www.twitch.tv/gamesdonequick";
+
+		info.innerHTML = `
+		  <a class="show-time" href="${hostUrl}" target="_blank">${showTime}</a>
+		  <span class="show-subtitle">Hosted by: ${renderRunners(hostName)}</span>
+		`;
+
+		const showTimeEl = clone.querySelector(".show-time");
+		showTimeEl.addEventListener("click", e => e.stopPropagation());
+
 
         const header = clone.querySelector(".show-header");
         header.style.display = "grid";
@@ -289,7 +292,6 @@ async function renderSchedule() {
         header.style.justifyContent = "center";
         header.style.alignItems = "center";
 
-        // Run header
         const runHeader = document.createElement("div");
         runHeader.className = "run-header-row";
         runHeader.style.gridTemplateColumns = "2fr 1fr 1fr 2fr";
@@ -301,15 +303,14 @@ async function renderSchedule() {
         `;
         clone.querySelector(".run-container").appendChild(runHeader);
 
-        // Compute run start times
         let baseTime = new Date(firstStart.getTime());
+
         groups[key].forEach((run, i) => {
-          if (i > 0) baseTime = new Date(baseTime.getTime() + 10 * 60 * 1000); // 10 min gap
+          if (i > 0) baseTime = new Date(baseTime.getTime() + 10 * 60 * 1000);
           run._computedStart = new Date(baseTime.getTime());
           baseTime = new Date(baseTime.getTime() + parseEstimateToMs(run["Estimate"]));
         });
 
-        // Render runs
         groups[key].forEach(run => {
           const runTemplate = document.getElementById("run-template");
           const runClone = document.importNode(runTemplate.content, true);
@@ -326,7 +327,7 @@ async function renderSchedule() {
           runClone.querySelector(".estimate").textContent = formatEstimateString(run["Estimate"]);
           runClone.querySelector(".runner").innerHTML = renderRunners(run["Runners"], run["Runner Stream"]);
 
-          runRow.addEventListener("click", (e) => {
+          runRow.addEventListener("click", e => {
             if (e.target.closest(".runner")) return;
             const runDateKey = buildDateKeyFromParts(getEasternParts(run["Show Date"]));
             const todayKey = buildDateKeyFromParts(getEasternParts(new Date()));
@@ -345,16 +346,14 @@ async function renderSchedule() {
     container.appendChild(dayBlock);
   });
 
-  // Scroll to current/last past day
+  // Scroll to today or nearest past day
   (function scrollToCurrentOrPastDay() {
     const todayKey = buildDateKeyFromParts(getEasternParts(new Date()));
-    const sortedKeys = Object.keys(byDate).sort();
-    if (!sortedKeys.length) return;
-
-    let chosen = sortedKeys.includes(todayKey)
+    const sortedDateKeys = Object.keys(byDate).sort();
+    if (!sortedDateKeys.length) return;
+    const chosen = sortedDateKeys.includes(todayKey)
       ? todayKey
-      : [...sortedKeys].reverse().find(d => d <= todayKey) || sortedKeys[0];
-
+      : [...sortedDateKeys].reverse().find(d => d <= todayKey) || sortedDateKeys[0];
     const el = document.getElementById("day-" + chosen.replace(/\//g, "-"));
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });

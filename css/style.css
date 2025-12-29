@@ -166,6 +166,9 @@ h1 {
 }
 
 .show-time {
+  text-decoration: none; /* removes underline */
+  color: inherit;        /* optional: keeps the same text color as surrounding text */
+  cursor: pointer;       /* optional: makes it clear it's clickable */
   font-size: 2rem;
   font-weight: bold;
   color: #ffffff;
