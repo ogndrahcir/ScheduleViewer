@@ -29,7 +29,7 @@ h1 {
   padding: 8px 10px;
   gap: 6px;
   z-index: 1000;
-  scrollbar-width: thin; /* Firefox */
+  scrollbar-width: thin;
 }
 
 .navbar::-webkit-scrollbar {
@@ -68,34 +68,6 @@ h1 {
   color: #000;
 }
 
-.nav-day-btn .day-name {
-  font-weight: bold;
-  font-size: 0.85rem;
-  line-height: 1.2;
-}
-
-.nav-day-btn .month-day {
-  font-size: 0.75rem;
-  line-height: 1.1;
-  margin-top: 2px;
-}
-
-/* Small screens: reduce width & font */
-@media (max-width: 480px) {
-  .nav-day-btn {
-    min-width: 55px;
-    padding: 4px 6px;
-  }
-
-  .nav-day-btn .day-name {
-    font-size: 0.75rem;
-  }
-
-  .nav-day-btn .month-day {
-    font-size: 0.65rem;
-  }
-}
-
 /* ============================================================== 
    Day Block 
    ============================================================== */
@@ -122,40 +94,75 @@ h1 {
 .show-group {
   margin-bottom: 20px;
   border-bottom: 1px solid #333;
-  padding-bottom: 0; 
 }
 
 .show-header {
   display: flex;
-  justify-content: space-evenly;
-  align-items: left;
-  height: 100px;
+  justify-content: center; /* keep centered */
+  align-items: center;
+  gap: 50px; /* less gap between logo and info */
+  max-width: fit-content; /* container wraps tightly around children */
   margin: 0 auto;
-  max-width: 50vw;          /* middle 50% of viewport */
-  gap: 20px;                /* space between logo and info */
 }
 
+/* ---------- LOGO ---------- */
 .show-logo-container {
-  width: 120px;             /* fixed width for all logos */
-  height: 100px;            /* same height as before */
+  width: 120px;
+  height: 100px;
   display: flex;
-  justify-content: center;  /* center image horizontally */
-  align-items: center;      /* center image vertically */
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* anchor wrapper for logo */
+.show-logo-link {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
 }
 
 .show-logo {
-  max-height: 100%;         /* fit inside container height */
-  width: auto;              /* maintain aspect ratio */
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  display: block;
+  object-fit: contain; /* ensures aspect ratio without overflow */
+  pointer-events: none; /* allows anchor to capture clicks */
+}
+
+/* ---------- SHOW INFO ---------- */
+.show-info-link {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
 
 .show-info {
   text-align: center;
-  height: 100px;             /* full height of header */
   width: 100%;
-  flex: 1;                  /* take remaining space in container */
+  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+/* Hover affordance */
+.show-logo-link:hover,
+.show-info-link:hover {
+  filter: brightness(1.1);
+}
+
+.show-info-link:hover .show-time {
+  text-decoration: underline;
 }
 
 .show-time {
@@ -170,34 +177,21 @@ h1 {
   margin-top: 2px;
 }
 
-/* -------- MOBILE -------- */
+/* ---------- MOBILE ---------- */
 @media (max-width: 768px) {
   .show-header {
-    display: flex;
-    justify-content: space-evenly;
-    align-items: left;
-    max-width: 90vw;           /* almost full width */
-    height: auto;              /* let height grow naturally */
-    gap: 10px;                 /* less spacing between logo and info */
-    align-items: center;       /* center everything horizontally */
+    max-width: 90vw;
+    height: auto;
+    gap: 10px;
   }
 
   .show-logo-container {
-    width: 40px;               /* smaller logo width */
-    height: 40px;              /* smaller logo height */
-  }
-
-  .show-logo {
-    max-height: 100%;          /* still maintain aspect ratio */
-  }
-
-  .show-info {
-    width: 100%;               /* full width under logo */
-    height: auto;              /* let it shrink */
+    width: 60px;
+    height: 60px;
   }
 
   .show-time {
-    font-size: 1.5rem;         /* smaller font for mobile */
+    font-size: 1.5rem;
   }
 
   .show-subtitle {
@@ -205,9 +199,8 @@ h1 {
   }
 }
 
-
 /* ============================================================== 
-   Run Header Row (Sticky) 
+   Run Header Row 
    ============================================================== */
 .run-header-row {
   display: grid;
@@ -236,10 +229,6 @@ h1 {
   transition: background-color 0.2s;
 }
 
-.run-row:nth-child(even) {
-  background-color: #242424;
-}
-
 .run-row:hover {
   background-color: #2e2e2e;
 }
@@ -247,45 +236,30 @@ h1 {
 .game {
   font-size: 22px;
   font-weight: bold;
-  color: #ffffff;
-  margin-bottom: 4px;
 }
 
 .category {
-  color: #aaaaaa;
   font-size: 14px;
+  color: #aaaaaa;
 }
 
-.run-start {
-  font-size: 22px;
-  font-weight: bold;
-  color: #ffffff;
-  text-align: left;
-}
-
-
+.run-start,
 .estimate {
   font-size: 22px;
   font-weight: bold;
-  color: #ffffff;
-  text-align: left;
 }
 
 .runner {
   font-size: 22px;
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-start;
   gap: 4px;
 }
 
 .runner-pill {
-  display: inline-block;
   padding: 5px 12px;
-  margin: 5px;
   background-color: #7b5ea3;
   color: #ffffff;
   border-radius: 9px;
   text-decoration: none;
-  font-size: 1.0em;
 }
