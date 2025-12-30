@@ -278,7 +278,7 @@ async function renderSchedule() {
 		const hostUrl = hostLinks[hostName.toLowerCase()] || "https://www.twitch.tv/gamesdonequick";
 
 		info.innerHTML = `
-		  <a class="show-time" href="${hostUrl}" target="_blank">${showTime}</a>
+		  <a class="show-time" href="https://www.twitch.tv/gamesdonequick" target="_blank">${showTime}</a>
 		  <span class="show-subtitle">Hosted by: ${renderRunners(hostName)}</span>
 		`;
 

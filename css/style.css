@@ -161,10 +161,6 @@ h1 {
   filter: brightness(1.1);
 }
 
-.show-info-link:hover .show-time {
-  text-decoration: underline;
-}
-
 .show-time {
   text-decoration: none; /* removes underline */
   color: inherit;        /* optional: keeps the same text color as surrounding text */
@@ -172,6 +168,7 @@ h1 {
   font-size: 2rem;
   font-weight: bold;
   color: #ffffff;
+  margin-bottom: 10px;
 }
 
 .show-subtitle {
