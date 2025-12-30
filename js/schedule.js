@@ -164,11 +164,23 @@ function resolveLogo(showName) {
 function renderRunners(runnerNames = "", runnerStreams = "") {
   if (!runnerNames) return "";
   const names = String(runnerNames).split(",").map(s => s.trim()).filter(Boolean);
+  const streams = String(runnerStreams || "").split(",").map(s => s.trim());
+  return names.map((name, i) => {
+    let url = streams[i] || "#";
+    if (url && !/^https?:\/\//i.test(url)) url = "https://" + url;
+    return `<a href="${url}" target="_blank" class="runner-pill">${name}</a>`;
+  }).join(" ");
+}
+
+function renderHost(hostNames = "") {
+  if (!hostNames) return "";
+  const names = String(hostNames).split(",").map(s => s.trim()).filter(Boolean);
   return names.map(name => {
     const url = hostLinks[name.toLowerCase()] || "#";
     return `<a href="${url}" target="_blank" class="runner-pill">${name}</a>`;
   }).join(" ");
 }
+
 
 // -------------------------------------------------------------
 // Main rendering
@@ -279,7 +291,7 @@ async function renderSchedule() {
 
 		info.innerHTML = `
 		  <a class="show-time" href="https://www.twitch.tv/gamesdonequick" target="_blank">${showTime}</a>
-		  <span class="show-subtitle">Hosted by: ${renderRunners(hostName)}</span>
+		  <span class="show-subtitle">Hosted by: ${renderHost(hostName)}</span>
 		`;
 
 		const showTimeEl = clone.querySelector(".show-time");
