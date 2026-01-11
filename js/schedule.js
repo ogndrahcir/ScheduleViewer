@@ -24,7 +24,7 @@ const showLinks = {
   "random number generation": "https://www.youtube.com/playlist?list=PLz8YL4HVC87WvvILEYCszbneK4sp1eU8K",
   "speedruns from the crypt": "https://www.youtube.com/playlist?list=PLz8YL4HVC87X6rZMXsh-EW663t7zTnxNG",
   "the scenic route": "https://www.youtube.com/watch?v=AWPTBpfYD0Q",
-  "think fast!": "https://www.youtube.com/playlist?list=PLz8YL4HVC87X9I54nPFBYLnJs4nKVs4zI",
+  "think fast": "https://www.youtube.com/playlist?list=PLz8YL4HVC87X9I54nPFBYLnJs4nKVs4zI",
   "dnd": "https://awnnetwork.org/"
 };
 
