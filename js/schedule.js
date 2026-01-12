@@ -45,6 +45,8 @@ const hostLinks = {
   "ecdycis": "https://twitch.tv/Ecdycis",
   "ozmourn": "https://twitch.tv/Ozmourn",
   "swooce": "https://twitch.tv/swooce19",
+  "jyggy": "https://twitch.tv/jyggy",
+  "churchnsarge": "https://twitch.tv/ChurchnSarge",
   "sparkle": "https://twitch.tv/Sparkle"
 };
 
