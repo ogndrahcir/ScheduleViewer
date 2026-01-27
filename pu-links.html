@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PU Links</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================================== 
+       Base Styles 
+       ============================================================== */
+    body {
+      font-family: 'Lexend', sans-serif;
+      background: #121212;
+      color: #e0e0e0;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      font-family: 'Lexend', sans-serif;
+      text-align: center;
+      margin-bottom: 30px;
+      color: #ffffff;
+    }
+
+    /* ============================================================== 
+       Container 
+       ============================================================== */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* ============================================================== 
+       Links Block 
+       ============================================================== */
+    .links-block {
+      background: #1e1e1e;
+      padding: 20px;
+      margin-bottom: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+
+    /* ============================================================== 
+       Link Row 
+       ============================================================== */
+    .link-row {
+      display: grid;
+      grid-template-columns: 2fr 3fr auto;
+      align-items: center;
+      gap: 20px;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      border: 1px solid #2a2a2a;
+      background-color: #1a1a1a;
+      transition: background-color 0.2s;
+    }
+
+    .link-row:hover {
+      background-color: #2e2e2e;
+    }
+
+    .game-name {
+      font-size: 22px;
+      font-weight: bold;
+      color: #ffffff;
+    }
+
+    .description {
+      font-size: 16px;
+      color: #aaaaaa;
+    }
+
+    .link-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 16px;
+      background-color: #7b5ea3;
+      border-radius: 4px;
+      text-decoration: none;
+      transition: background-color 0.2s, transform 0.2s;
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .link-arrow:hover {
+      background-color: #9370db;
+      transform: scale(1.05);
+    }
+
+    /* ============================================================== 
+       Loading State 
+       ============================================================== */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      font-size: 18px;
+      color: #aaaaaa;
+    }
+
+    /* ============================================================== 
+       Responsive 
+       ============================================================== */
+    @media (max-width: 768px) {
+      .link-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .game-name {
+        font-size: 18px;
+      }
+
+      .description {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Parallel Universe Links</h1>
+    <div class="links-block">
+      <div id="links-container" class="loading">
+        Loading links...
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Google Sheets CSV URL with CORS proxy
+    const SHEET_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCkWoUiKBQwGYLnvhXJGkYJWB3OiaY0Rwveuhc2Yr0feFqwW-utwIBZ6C8SF43gSbLUkv_iO0ZI6KI/pub?output=csv';
+    const CSV_URL = `https://api.allorigins.win/raw?url=${encodeURIComponent(SHEET_CSV)}`;
+
+    async function fetchAndDisplayLinks() {
+      const container = document.getElementById('links-container');
+      
+      try {
+        const response = await fetch(CSV_URL);
+        const csvText = await response.text();
+        
+        // Parse CSV
+        const rows = parseCSV(csvText);
+        
+        // Skip header row and filter out empty rows
+        const dataRows = rows.slice(1).filter(row => 
+          row[0] && row[0].trim() !== '' // Has a game name
+        );
+
+        if (dataRows.length === 0) {
+          container.innerHTML = '<div class="loading">No links found.</div>';
+          return;
+        }
+
+        // Clear loading message
+        container.innerHTML = '';
+
+        // Create link rows
+        dataRows.forEach(row => {
+          const [gameName, description, link] = row;
+          
+          const linkRow = document.createElement('div');
+          linkRow.className = 'link-row';
+          
+          linkRow.innerHTML = `
+            <div class="game-name">${escapeHtml(gameName)}</div>
+            <div class="description">${escapeHtml(description || '')}</div>
+            <a href="${escapeHtml(link)}" class="link-arrow" target="_blank" rel="noopener noreferrer" title="Visit ${escapeHtml(gameName)}">
+              →
+            </a>
+          `;
+          
+          container.appendChild(linkRow);
+        });
+
+      } catch (error) {
+        console.error('Error fetching links:', error);
+        container.innerHTML = '<div class="loading">Error loading links. Please try again later.</div>';
+      }
+    }
+
+    // Simple CSV parser
+    function parseCSV(text) {
+      const rows = [];
+      let currentRow = [];
+      let currentField = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const nextChar = text[i + 1];
+
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            currentField += '"';
+            i++; // Skip next quote
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          currentRow.push(currentField);
+          currentField = '';
+        } else if (char === '\n' && !inQuotes) {
+          currentRow.push(currentField);
+          rows.push(currentRow);
+          currentRow = [];
+          currentField = '';
+          if (nextChar === '\r') i++; // Skip \r in \r\n
+        } else if (char === '\r' && nextChar === '\n' && !inQuotes) {
+          currentRow.push(currentField);
+          rows.push(currentRow);
+          currentRow = [];
+          currentField = '';
+          i++; // Skip \n
+        } else {
+          currentField += char;
+        }
+      }
+
+      // Add last field and row if exists
+      if (currentField || currentRow.length > 0) {
+        currentRow.push(currentField);
+        rows.push(currentRow);
+      }
+
+      return rows;
+    }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Load links when page loads
+    fetchAndDisplayLinks();
+  </script>
+</body>
+</html>
