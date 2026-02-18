@@ -112,10 +112,10 @@ h1 {
 
 .show-header {
   display: flex;
-  justify-content: center; /* keep centered */
+  justify-content: center;
   align-items: center;
-  gap: 50px; /* less gap between logo and info */
-  max-width: fit-content; /* container wraps tightly around children */
+  gap: 50px;
+  max-width: fit-content;
   margin: 0 auto;
 }
 
@@ -146,8 +146,8 @@ h1 {
   width: auto;
   height: auto;
   display: block;
-  object-fit: contain; /* ensures aspect ratio without overflow */
-  pointer-events: none; /* allows anchor to capture clicks */
+  object-fit: contain;
+  pointer-events: none;
 }
 
 /* ---------- SHOW INFO ---------- */
@@ -176,9 +176,9 @@ h1 {
 }
 
 .show-time {
-  text-decoration: none; /* removes underline */
-  color: inherit;        /* optional: keeps the same text color as surrounding text */
-  cursor: pointer;       /* optional: makes it clear it's clickable */
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
   font-size: 2rem;
   font-weight: bold;
   color: #ffffff;
@@ -276,4 +276,99 @@ h1 {
   color: #ffffff;
   border-radius: 9px;
   text-decoration: none;
+}
+
+/* ============================================================== 
+   Timezone Bar
+   Default: inline at the bottom of the page content.
+   When .pinned is added on load, it fixes to the bottom of the
+   viewport. Apply button removes .pinned to set it free.
+   ============================================================== */
+#tz-bar {
+  background-color: #2c1a4d;
+  border-top: 2px solid #4b2d7d;
+  border-radius: 8px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Lexend', sans-serif;
+  margin-top: 20px;
+  transition: border-radius 0.2s;
+}
+
+/* Fixed to viewport bottom until Apply is pressed */
+#tz-bar.pinned {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 0;
+  z-index: 3000;
+}
+
+/* Spacer to prevent content being hidden behind the pinned bar */
+#tz-spacer {
+  height: 56px;
+  display: none; /* shown by JS when bar is pinned */
+}
+
+#tz-bar label {
+  color: #ccc;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+#tz-select {
+  background-color: #1a1a1a;
+  color: #ffffff;
+  border: 1px solid #633fa0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: 'Lexend', sans-serif;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+#tz-select:hover,
+#tz-select:focus {
+  border-color: #9b6fd4;
+  outline: none;
+}
+
+#tz-refresh {
+  background-color: #4b2d7d;
+  color: #ffffff;
+  border: 1px solid #633fa0;
+  padding: 4px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-family: 'Lexend', sans-serif;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+#tz-refresh:hover {
+  background-color: #633fa0;
+}
+
+#tz-note {
+  color: #888;
+  font-size: 0.8em;
+  white-space: nowrap;
+}
+
+/* ---------- MOBILE ---------- */
+@media (max-width: 768px) {
+  #tz-bar {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+  }
+
+  #tz-note {
+    display: none;
+  }
 }
