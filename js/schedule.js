@@ -1,13 +1,7 @@
-// schedule.js - timezone-aware, DST-safe, pulls only needed parts from each field
-
-// -------------------------------------------------------------
-// DATA URL
-// -------------------------------------------------------------
+// data from spreadsheet
 const DATA_URL = "https://script.google.com/macros/s/AKfycbyxanGFzAWbQV4Fso__LJh5eOb4GDjBYHx6sK79FTu3ww6z0sYs603UbQeEr-aKRoK7/exec";
 
-// -------------------------------------------------------------
-// Selected timezone (default ET, updated by dropdown)
-// -------------------------------------------------------------
+// Eastern always (EDT or EST)
 let selectedTimezone = "America/New_York";
 
 // -------------------------------------------------------------
@@ -16,9 +10,7 @@ let selectedTimezone = "America/New_York";
 // -------------------------------------------------------------
 let cachedRows = null;
 
-// -------------------------------------------------------------
-// Hardcoded links
-// -------------------------------------------------------------
+// Show names and showrunner names
 const showLinks = {
   "creature corner": "https://youtube.com/playlist?list=PLz8YL4HVC87UKC3XkXFvdtBUSWEY3yUQf&si=jBRc0S240tx8E49Y",
   "crosshair": "https://youtube.com/playlist?list=PLz8YL4HVC87VcaUDbDWdEbWFEq5VsV6d1&si=bPlmWBGWF7daDQBu",
@@ -61,9 +53,7 @@ const hostLinks = {
   "sparkle": "https://twitch.tv/Sparkle"
 };
 
-// -------------------------------------------------------------
 // Load schedule data (fetches once, then uses cache).
-// -------------------------------------------------------------
 async function loadSchedule() {
   if (cachedRows) return cachedRows;
   const res = await fetch(`${DATA_URL}?t=${Date.now()}`);
@@ -72,47 +62,40 @@ async function loadSchedule() {
 }
 
 // -------------------------------------------------------------
-// DST-aware Eastern offset detection
-//
 // Returns the number of hours ET is behind UTC on a given date.
 //   EST (winter): 5
 //   EDT (summer): 4
 //
-// We ask Intl.DateTimeFormat what hour it is in New York for a
-// given UTC moment, then compare to the actual UTC hour.
-// This is fully DST-aware and correct for any date.
+// We ask Intl.DateTimeFormat what the timezone abbreviation is
+// in New York for a given date. "EST" = 5, "EDT" = 4.
+// This is only used for Show Date (midnight ET) conversion.
 // -------------------------------------------------------------
 function getEasternOffsetHours(dateForContext) {
   const d = dateForContext instanceof Date ? dateForContext : new Date(dateForContext);
-  // Use noon UTC on the show date to avoid any midnight edge cases
   const noon = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0));
-  const utcHour = noon.getUTCHours(); // always 12
-  const etHour = Number(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/New_York",
-      hour: "numeric",
-      hour12: false
-    }).format(noon)
-  );
-  let offset = utcHour - etHour;
-  if (offset > 12) offset -= 24; // handle any wrap
-  return offset; // 5 for EST, 4 for EDT
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    timeZoneName: "short"
+  }).formatToParts(noon);
+  const abbr = parts.find(p => p.type === "timeZoneName")?.value;
+  return abbr === "EDT" ? 4 : 5;
 }
 
 // -------------------------------------------------------------
 // Field parsers
 //
-// All three fields come from Google Sheets as ISO timestamps in UTC.
-// Sheets stores Eastern times with a baked-in offset — but that offset
-// changes on DST boundaries. We detect the correct offset per date
-// instead of hardcoding -5.
+// Show Date:  "2026-03-15T04:00:00.000Z" → midnight ET (EDT: UTC-4 → 04:00Z)
+//             "2026-03-01T05:00:00.000Z" → midnight ET (EST: UTC-5 → 05:00Z)
 //
-// Show Date:  "2026-02-17T05:00:00.000Z" → midnight ET (EST: UTC-5 → 05:00Z)
-//             "2026-03-15T04:00:00.000Z" → midnight ET (EDT: UTC-4 → 04:00Z)
-// Show Start: "1899-12-31T00:00:00.000Z" → time-only serial (7 PM ET in winter = 00:00Z)
-//             "1899-12-31T23:00:00.000Z" → time-only serial (7 PM ET in summer = 23:00Z)
-// Estimate:   "1899-12-30T08:10:00.000Z" → 3:10:00 in winter
-//             "1899-12-30T07:10:00.000Z" → 3:10:00 in summer
+// Show Start: "1899-12-30T18:00:00.000Z" → time-only serial.
+//             Google Sheets ALWAYS encodes these with UTC-5 (EST) baked in,
+//             regardless of what date the show falls on.
+//             So 18:00Z - 5 = 13:00 ET (1 PM Eastern) always.
+//
+// Estimate:   "1899-12-30T07:15:00.000Z" → duration serial.
+//             Also ALWAYS encoded with UTC-5 (EST) baked in by Sheets.
+//             So 07:15Z - 5 = 2h15m always.
+//             This is a fixed duration, NOT a clock time — DST never applies.
 // -------------------------------------------------------------
 
 /**
@@ -127,62 +110,79 @@ function parseShowDate(raw) {
 }
 
 /**
- * parseShowStart(raw, offsetHours)
+ * parseShowStart(raw)
  * Extracts the ET time-of-day from the Sheets time serial.
- * offsetHours = 5 for EST, 4 for EDT.
- * Returns { h, m } in ET.
+ * Sheets always encodes these serials with UTC-5 baked in.
+ * Returns { h, m } in Eastern time.
  */
-function parseShowStart(raw, offsetHours) {
+function parseShowStart(raw) {
   if (!raw) return { h: 0, m: 0 };
   const d = new Date(raw);
   if (isNaN(d)) return { h: 0, m: 0 };
-  let h = d.getUTCHours() - offsetHours;
+  let h = d.getUTCHours() - 5; // always 5 — Sheets serials are always UTC-5 encoded
   const m = d.getUTCMinutes();
   if (h < 0) h += 24;
   return { h, m };
 }
 
 /**
- * parseEstimate(raw, offsetHours)
- * Extracts the duration from the Sheets time serial.
- * offsetHours = 5 for EST, 4 for EDT.
+ * parseEstimate(raw)
+ * Extracts the run duration from the Sheets time serial.
+ * Sheets always encodes these serials with UTC-5 baked in.
+ * This is a pure duration — DST is irrelevant.
  * Returns { h, m, s } as a duration.
  */
-function parseEstimate(raw, offsetHours) {
+function parseEstimate(raw) {
   if (!raw) return { h: 0, m: 0, s: 0 };
   const d = new Date(raw);
   if (isNaN(d)) return { h: 0, m: 0, s: 0 };
-  let h = d.getUTCHours() - offsetHours;
+  let h = d.getUTCHours() - 5; // always 5 — Sheets serials are always UTC-5 encoded
   const m = d.getUTCMinutes();
   const s = d.getUTCSeconds();
   if (h < 0) h += 24;
   return { h, m, s };
 }
 
-function estimateToMs(raw, offsetHours) {
-  const { h, m, s } = parseEstimate(raw, offsetHours);
+function estimateToMs(raw) {
+  const { h, m, s } = parseEstimate(raw);
   return (h * 3600 + m * 60 + s) * 1000;
 }
 
-function formatEstimateString(raw, offsetHours) {
-  const { h, m, s } = parseEstimate(raw, offsetHours);
+function formatEstimateString(raw) {
+  const { h, m, s } = parseEstimate(raw);
   return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 /**
  * buildShowStartUtc(showDateRaw, showStartRaw)
  * Combines Show Date (date) + Show Start (time) into a real UTC timestamp.
- * Automatically detects whether the show date is in EST or EDT.
+ * DST offset is applied to the show DATE only, to correctly convert
+ * "midnight ET" to UTC. The show start time serial is always UTC-5 encoded.
  */
 function buildShowStartUtc(showDateRaw, showStartRaw) {
   const dateD = parseShowDate(showDateRaw);
   if (!dateD) return null;
 
-  // Detect the correct ET offset for this specific show date
+  // Detect the correct ET offset for this specific show date (EST=5, EDT=4)
+  // This is needed to know what "midnight Eastern" means in UTC for this date.
   const offsetHours = getEasternOffsetHours(dateD);
 
-  const { h, m } = parseShowStart(showStartRaw, offsetHours);
-  const etMidnightMs = dateD.getTime(); // midnight ET as UTC ms
+  // parseShowStart always uses -5 internally (Sheets encoding), giving us
+  // the correct Eastern clock time (e.g. 13 for 1 PM ET).
+  const { h, m } = parseShowStart(showStartRaw);
+
+  // etMidnightMs is the UTC ms for midnight ET on the show date.
+  // We then add the show's Eastern clock time offset FROM midnight.
+  // But we need to account for the actual DST offset to get real UTC.
+  // 
+  // Example: Show date is March 15 (EDT, UTC-4).
+  //   etMidnightMs = 2026-03-15T04:00:00.000Z (correct midnight ET in UTC)
+  //   Show start = 1 PM ET = 13 hours after midnight ET
+  //   Real UTC = etMidnightMs + 13h = 2026-03-15T17:00:00.000Z (1 PM EDT = UTC-4 = 17:00Z) ✓
+  //
+  // The etMidnightMs already encodes the DST offset correctly (04:00Z for EDT,
+  // 05:00Z for EST), so we just add the Eastern clock hours directly.
+  const etMidnightMs = dateD.getTime();
   const showStartUtcMs = etMidnightMs + (h * 60 + m) * 60 * 1000;
   return new Date(showStartUtcMs);
 }
@@ -293,13 +293,8 @@ async function renderSchedule() {
   const rows = await loadSchedule();
   if (!Array.isArray(rows)) return;
 
-  // Pre-process: build correct UTC timestamps using DST-aware offset per row
   rows.forEach(r => {
     r._showStartUtc = buildShowStartUtc(r["Show Date"], r["Show Start (Eastern)"]);
-    // Store the offset so estimate parsing uses the same value
-    r._etOffset = r._showStartUtc
-      ? getEasternOffsetHours(parseShowDate(r["Show Date"]))
-      : 5;
   });
 
   const byDate = {};
@@ -426,7 +421,7 @@ async function renderSchedule() {
         groups[key].forEach((run, i) => {
           if (i > 0) runningTime += 10 * 60 * 1000;
           run._computedStart = new Date(runningTime);
-          runningTime += estimateToMs(run["Estimate"], run._etOffset);
+          runningTime += estimateToMs(run["Estimate"]);
         });
 
         groups[key].forEach(run => {
@@ -442,7 +437,7 @@ async function renderSchedule() {
 
           runClone.querySelector(".game").textContent = run["Game"] || "";
           runClone.querySelector(".category").textContent = run["Category"] || "";
-          runClone.querySelector(".estimate").textContent = formatEstimateString(run["Estimate"], run._etOffset);
+          runClone.querySelector(".estimate").textContent = formatEstimateString(run["Estimate"]);
           runClone.querySelector(".runner").innerHTML = renderRunners(run["Runners"], run["Runner Stream"]);
 
           runRow.addEventListener("click", e => {
@@ -524,7 +519,5 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   updateTzLabels();
-
-  // Initial render — after selectedTimezone is set
   renderSchedule().catch(err => console.error("renderSchedule error:", err));
 });
