@@ -421,8 +421,8 @@ async function renderSchedule() {
         groups[key].forEach((run, i) => {
           // 10 Minutes in between runs 
           // if (i > 0) runningTime += 10 * 60 * 1000;
-          // 7 minutes in between runs instead of 10
-          if (i > 0) runningTime += 7 * 60 * 1000;
+          // 6 minutes in between runs instead of 10
+          if (i > 0) runningTime += 6 * 60 * 1000;
           run._computedStart = new Date(runningTime);
           runningTime += estimateToMs(run["Estimate"]);
         });
