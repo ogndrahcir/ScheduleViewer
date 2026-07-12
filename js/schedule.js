@@ -513,9 +513,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Apply button: unpin the bar, clear cache for fresh fetch, re-render
   btn.addEventListener("click", () => {
-    tzBar.classList.remove("pinned");
-    tzSpacer.style.display = "none";
-    cachedRows = null;
     selectedTimezone = select.value;
     updateTzLabels();
     renderSchedule();
