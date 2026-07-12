@@ -360,6 +360,30 @@ h1 {
   white-space: nowrap;
 }
 
+#tz-bar-links {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.tz-bar-button {
+  background-color: #4b2d7d;
+  color: #ffffff;
+  border: 1px solid #633fa0;
+  padding: 4px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-family: 'Lexend', sans-serif;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.tz-bar-button:hover {
+  background-color: #633fa0;
+}
 /* ---------- MOBILE ---------- */
 @media (max-width: 768px) {
   #tz-bar {
@@ -370,5 +394,11 @@ h1 {
 
   #tz-note {
     display: none;
+  }
+
+  #tz-bar-links {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
   }
 }
