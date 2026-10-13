@@ -279,38 +279,26 @@ h1 {
 }
 
 /* ============================================================== 
-   Timezone Bar
-   Default: inline at the bottom of the page content.
-   When .pinned is added on load, it fixes to the bottom of the
-   viewport. Apply button removes .pinned to set it free.
+   Timezone Bar (always fixed to the bottom of the viewport)
    ============================================================== */
 #tz-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 3000;
   background-color: #2c1a4d;
   border-top: 2px solid #4b2d7d;
-  border-radius: 8px;
   padding: 10px 16px;
   display: flex;
   align-items: center;
   gap: 10px;
   font-family: 'Lexend', sans-serif;
-  margin-top: 20px;
-  transition: border-radius 0.2s;
 }
 
-/* Fixed to viewport bottom until Apply is pressed */
-#tz-bar.pinned {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  border-radius: 0;
-  z-index: 3000;
-}
-
-/* Spacer to prevent content being hidden behind the pinned bar */
+/* Spacer so content isn't hidden behind the fixed bar */
 #tz-spacer {
   height: 56px;
-  display: none; /* shown by JS when bar is pinned */
 }
 
 #tz-bar label {
@@ -335,23 +323,6 @@ h1 {
 #tz-select:focus {
   border-color: #9b6fd4;
   outline: none;
-}
-
-#tz-refresh {
-  background-color: #4b2d7d;
-  color: #ffffff;
-  border: 1px solid #633fa0;
-  padding: 4px 14px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9em;
-  font-family: 'Lexend', sans-serif;
-  transition: background-color 0.2s;
-  white-space: nowrap;
-}
-
-#tz-refresh:hover {
-  background-color: #633fa0;
 }
 
 #tz-note {

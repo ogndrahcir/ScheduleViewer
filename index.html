@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <title>Weekly GDQ Hotfix Schedule</title>
+  <!-- Open the connection to the data host early (Apps Script redirects to googleusercontent) -->
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <link rel="stylesheet" href="css/style.css">
+  <!-- defer: downloads while HTML parses, runs after, so the data fetch starts sooner -->
+  <script src="js/schedule.js" defer></script>
 </head>
 <body>
 
@@ -50,7 +55,7 @@
 </template>
 
 <!-- Timezone selector -->
-<!-- Spacer holds the space when the bar is pinned to the viewport bottom -->
+<!-- Spacer holds the space for the bar pinned to the viewport bottom -->
 <div id="tz-spacer"></div>
 <div id="tz-bar">
   <label for="tz-select">Timezone:</label>
@@ -68,13 +73,12 @@
     <option value="Australia/Sydney">Sydney (AEST/AEDT)</option>
     <option value="UTC">UTC</option>
   </select>
-  <button id="tz-refresh">Apply</button>
+  <span id="tz-note">Times are estimates (subject to change)</span>
   <div id="tz-bar-links">
     <a id="gdqueer-link" class="tz-bar-button" href="https://gdq.gg/schedule/gdqueer" target="_blank" rel="noopener">Games Done Queer 📅 Oct 3-4</a>
     <a id="hitless-link" class="tz-bar-button" href="http://gdq.gg/schedule/gdh" target="_blank" rel="noopener">Games Done Hitless 📅 Oct 23-25</a>
   </div>
 </div>
 
-<script src="js/schedule.js"></script>
 </body>
 </html>

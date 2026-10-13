@@ -1,14 +1,38 @@
 // data from spreadsheet
 const DATA_URL = "https://script.google.com/macros/s/AKfycbyxanGFzAWbQV4Fso__LJh5eOb4GDjBYHx6sK79FTu3ww6z0sYs603UbQeEr-aKRoK7/exec";
 
-// Eastern always (EDT or EST)
+// localStorage key for the last-good copy of the schedule JSON
+const CACHE_KEY = "gdq-hotfix-schedule-v1";
+
+// Eastern by default (replaced by the visitor's timezone on load if it's in the list)
 let selectedTimezone = "America/New_York";
 
+// Parsed rows with start times precomputed (see setRows). Null until data arrives.
+let scheduleRows = null;
+let activeDayKey = null;
+
 // -------------------------------------------------------------
-// Data cache — fetched once, re-used on every timezone change.
-// Set to null to force a fresh fetch (e.g. when Apply is clicked).
+// Start the network request immediately, while the rest of the
+// page is still being parsed. Apps Script is the slowest part of
+// the load, so every millisecond it can start earlier counts.
 // -------------------------------------------------------------
-let cachedRows = null;
+async function fetchFresh() {
+  const res = await fetch(`${DATA_URL}?t=${Date.now()}`);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const text = await res.text();
+  const rows = JSON.parse(text);
+  if (!Array.isArray(rows)) throw new Error("Unexpected data format");
+  return { text, rows };
+}
+const freshPromise = fetchFresh();
+freshPromise.catch(() => {}); // handled in init(); avoids an unhandled-rejection warning
+
+function readCache() {
+  try { return localStorage.getItem(CACHE_KEY); } catch (e) { return null; }
+}
+function writeCache(text) {
+  try { localStorage.setItem(CACHE_KEY, text); } catch (e) { /* storage full/blocked: ignore */ }
+}
 
 // Show names and showrunner names
 const showLinks = {
@@ -53,34 +77,6 @@ const hostLinks = {
   "sparkle": "https://twitch.tv/Sparkle"
 };
 
-// Load schedule data (fetches once, then uses cache).
-async function loadSchedule() {
-  if (cachedRows) return cachedRows;
-  const res = await fetch(`${DATA_URL}?t=${Date.now()}`);
-  cachedRows = await res.json();
-  return cachedRows;
-}
-
-// -------------------------------------------------------------
-// Returns the number of hours ET is behind UTC on a given date.
-//   EST (winter): 5
-//   EDT (summer): 4
-//
-// We ask Intl.DateTimeFormat what the timezone abbreviation is
-// in New York for a given date. "EST" = 5, "EDT" = 4.
-// This is only used for Show Date (midnight ET) conversion.
-// -------------------------------------------------------------
-function getEasternOffsetHours(dateForContext) {
-  const d = dateForContext instanceof Date ? dateForContext : new Date(dateForContext);
-  const noon = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0));
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    timeZoneName: "short"
-  }).formatToParts(noon);
-  const abbr = parts.find(p => p.type === "timeZoneName")?.value;
-  return abbr === "EDT" ? 4 : 5;
-}
-
 // -------------------------------------------------------------
 // Field parsers
 //
@@ -98,23 +94,12 @@ function getEasternOffsetHours(dateForContext) {
 //             This is a fixed duration, NOT a clock time — DST never applies.
 // -------------------------------------------------------------
 
-/**
- * parseShowDate(raw)
- * Returns a Date representing midnight ET on the show date.
- * The UTC value from Sheets is already the correct moment.
- */
 function parseShowDate(raw) {
   if (!raw) return null;
   const d = new Date(raw);
   return isNaN(d) ? null : d;
 }
 
-/**
- * parseShowStart(raw)
- * Extracts the ET time-of-day from the Sheets time serial.
- * Sheets always encodes these serials with UTC-5 baked in.
- * Returns { h, m } in Eastern time.
- */
 function parseShowStart(raw) {
   if (!raw) return { h: 0, m: 0 };
   const d = new Date(raw);
@@ -125,13 +110,6 @@ function parseShowStart(raw) {
   return { h, m };
 }
 
-/**
- * parseEstimate(raw)
- * Extracts the run duration from the Sheets time serial.
- * Sheets always encodes these serials with UTC-5 baked in.
- * This is a pure duration — DST is irrelevant.
- * Returns { h, m, s } as a duration.
- */
 function parseEstimate(raw) {
   if (!raw) return { h: 0, m: 0, s: 0 };
   const d = new Date(raw);
@@ -155,77 +133,77 @@ function formatEstimateString(raw) {
 
 /**
  * buildShowStartUtc(showDateRaw, showStartRaw)
- * Combines Show Date (date) + Show Start (time) into a real UTC timestamp.
- * DST offset is applied to the show DATE only, to correctly convert
- * "midnight ET" to UTC. The show start time serial is always UTC-5 encoded.
+ * Show Date from Sheets is already "midnight ET" as a real UTC moment (04:00Z in
+ * EDT, 05:00Z in EST), so DST is already baked in. Adding the Eastern clock time
+ * of the show start gives the real UTC start.
+ * Example: Mar 15 (EDT) → 04:00Z + 13h (1 PM ET) = 17:00Z ✓
  */
 function buildShowStartUtc(showDateRaw, showStartRaw) {
   const dateD = parseShowDate(showDateRaw);
   if (!dateD) return null;
-
-  // Detect the correct ET offset for this specific show date (EST=5, EDT=4)
-  // This is needed to know what "midnight Eastern" means in UTC for this date.
-  const offsetHours = getEasternOffsetHours(dateD);
-
-  // parseShowStart always uses -5 internally (Sheets encoding), giving us
-  // the correct Eastern clock time (e.g. 13 for 1 PM ET).
   const { h, m } = parseShowStart(showStartRaw);
+  return new Date(dateD.getTime() + (h * 60 + m) * 60 * 1000);
+}
 
-  // etMidnightMs is the UTC ms for midnight ET on the show date.
-  // We then add the show's Eastern clock time offset FROM midnight.
-  // But we need to account for the actual DST offset to get real UTC.
-  // 
-  // Example: Show date is March 15 (EDT, UTC-4).
-  //   etMidnightMs = 2026-03-15T04:00:00.000Z (correct midnight ET in UTC)
-  //   Show start = 1 PM ET = 13 hours after midnight ET
-  //   Real UTC = etMidnightMs + 13h = 2026-03-15T17:00:00.000Z (1 PM EDT = UTC-4 = 17:00Z) ✓
-  //
-  // The etMidnightMs already encodes the DST offset correctly (04:00Z for EDT,
-  // 05:00Z for EST), so we just add the Eastern clock hours directly.
-  const etMidnightMs = dateD.getTime();
-  const showStartUtcMs = etMidnightMs + (h * 60 + m) * 60 * 1000;
-  return new Date(showStartUtcMs);
+// Parse everything that doesn't depend on the selected timezone ONCE per data load,
+// instead of on every timezone change.
+function setRows(rows) {
+  rows.forEach(r => {
+    r._showStartUtc = buildShowStartUtc(r["Show Date"], r["Show Start (Eastern)"]);
+    r._estMs = estimateToMs(r["Estimate"]);
+    r._estStr = formatEstimateString(r["Estimate"]);
+  });
+  scheduleRows = rows;
 }
 
 // -------------------------------------------------------------
 // Timezone display helpers
+// Intl.DateTimeFormat is expensive to construct, so build each
+// (kind, timezone) formatter once and reuse it.
 // -------------------------------------------------------------
+const FORMAT_OPTS = {
+  dateKey:  { year: "numeric", month: "2-digit", day: "2-digit" },
+  weekday:  { weekday: "long" },
+  monthDay: { month: "short", day: "numeric" },
+  time:     { hour: "numeric", minute: "2-digit", hour12: true }
+};
+const fmtCache = new Map();
+function getFmt(kind, tz) {
+  const key = kind + "|" + tz;
+  let f = fmtCache.get(key);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-US", { ...FORMAT_OPTS[kind], timeZone: tz });
+    fmtCache.set(key, f);
+  }
+  return f;
+}
+
+function toValidDate(utcDate) {
+  if (!utcDate) return null;
+  const d = utcDate instanceof Date ? utcDate : new Date(utcDate);
+  return isNaN(d) ? null : d;
+}
 
 function getDateKeyInZone(utcDate, tz) {
-  if (!utcDate) return "Invalid Date";
-  const d = utcDate instanceof Date ? utcDate : new Date(utcDate);
-  if (isNaN(d)) return "Invalid Date";
-  const fmt = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  });
-  const parts = fmt.formatToParts(d);
+  const d = toValidDate(utcDate);
+  if (!d) return "Invalid Date";
+  const parts = getFmt("dateKey", tz).formatToParts(d);
   const get = (t) => parts.find(p => p.type === t)?.value || "00";
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
 function getDayLabelInZone(utcDate, tz) {
-  if (!utcDate) return { dayName: "", monthDay: "" };
-  const d = utcDate instanceof Date ? utcDate : new Date(utcDate);
-  if (isNaN(d)) return { dayName: "", monthDay: "" };
+  const d = toValidDate(utcDate);
+  if (!d) return { dayName: "", monthDay: "" };
   return {
-    dayName: d.toLocaleDateString("en-US", { weekday: "long", timeZone: tz }),
-    monthDay: d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: tz })
+    dayName: getFmt("weekday", tz).format(d),
+    monthDay: getFmt("monthDay", tz).format(d)
   };
 }
 
 function formatTimeInZone(utcDate, tz) {
-  if (!utcDate) return "";
-  const d = utcDate instanceof Date ? utcDate : new Date(utcDate);
-  if (isNaN(d)) return "";
-  return d.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: tz
-  });
+  const d = toValidDate(utcDate);
+  return d ? getFmt("time", tz).format(d) : "";
 }
 
 // -------------------------------------------------------------
@@ -287,34 +265,46 @@ function updateTzLabels() {
 }
 
 // -------------------------------------------------------------
-// Main rendering
+// Main rendering (synchronous — data is already in scheduleRows)
+//   autoScroll: jump to today's (or the latest past) day
+//   smooth:     animate that jump (off for the very first paint)
+// A background refresh passes autoScroll:false so it never yanks
+// the page out from under someone who is already reading.
 // -------------------------------------------------------------
-async function renderSchedule() {
-  const rows = await loadSchedule();
-  if (!Array.isArray(rows)) return;
-
-  rows.forEach(r => {
-    r._showStartUtc = buildShowStartUtc(r["Show Date"], r["Show Start (Eastern)"]);
-  });
-
-  const byDate = {};
-  rows.forEach(r => {
-    if (!r._showStartUtc) return;
-    const dateKey = getDateKeyInZone(r._showStartUtc, selectedTimezone);
-    const { dayName, monthDay } = getDayLabelInZone(r._showStartUtc, selectedTimezone);
-    if (!byDate[dateKey]) byDate[dateKey] = { rows: [], dayName, monthDay };
-    byDate[dateKey].rows.push(r);
-  });
+function renderSchedule({ autoScroll = true, smooth = true } = {}) {
+  if (!scheduleRows) return;
 
   const navContainer = document.getElementById("schedule-nav");
   const container = document.getElementById("schedule");
   if (!navContainer || !container) return;
 
-  container.innerHTML = "";
-  [...navContainer.querySelectorAll("button")].forEach(b => b.remove());
+  const prevScrollY = window.scrollY;
+  const tz = selectedTimezone;
+
+  // Group rows by day in the selected timezone
+  const byDate = {};
+  scheduleRows.forEach(r => {
+    if (!r._showStartUtc) return;
+    const dateKey = getDateKeyInZone(r._showStartUtc, tz);
+    if (!byDate[dateKey]) {
+      const { dayName, monthDay } = getDayLabelInZone(r._showStartUtc, tz);
+      byDate[dateKey] = { rows: [], dayName, monthDay };
+    }
+    byDate[dateKey].rows.push(r);
+  });
+
+  const sortedDateKeys = Object.keys(byDate).sort();
   const dayButtons = {};
 
-  Object.keys(byDate).sort().forEach(dateKey => {
+  function highlightDay(dateKey) {
+    activeDayKey = dateKey;
+    Object.keys(dayButtons).forEach(k => dayButtons[k].classList.remove("active"));
+    if (dayButtons[dateKey]) dayButtons[dateKey].classList.add("active");
+  }
+
+  // ---- Day nav buttons ----
+  const navFrag = document.createDocumentFragment();
+  sortedDateKeys.forEach(dateKey => {
     const btn = document.createElement("button");
     btn.className = "nav-day-btn";
 
@@ -335,16 +325,16 @@ async function renderSchedule() {
       highlightDay(dateKey);
     });
 
-    navContainer.appendChild(btn);
+    navFrag.appendChild(btn);
     dayButtons[dateKey] = btn;
   });
 
-  function highlightDay(dateKey) {
-    Object.keys(dayButtons).forEach(k => dayButtons[k].classList.remove("active"));
-    if (dayButtons[dateKey]) dayButtons[dateKey].classList.add("active");
-  }
+  // ---- Day blocks ----
+  const showTemplate = document.getElementById("show-template");
+  const runTemplate = document.getElementById("run-template");
+  const frag = document.createDocumentFragment();
 
-  Object.keys(byDate).sort().forEach(dateKey => {
+  sortedDateKeys.forEach(dateKey => {
     const dayBlock = document.createElement("div");
     dayBlock.className = "day-block";
     dayBlock.id = "day-" + dateKey;
@@ -352,10 +342,8 @@ async function renderSchedule() {
     const { dayName, monthDay } = byDate[dateKey];
     dayBlock.innerHTML = `<div class='day-title'>${dayName}, ${monthDay}</div>`;
 
-    const runs = byDate[dateKey].rows;
     const groups = {};
-
-    runs.forEach(run => {
+    byDate[dateKey].rows.forEach(run => {
       const show = run["Show"] || "";
       const host = run["Host"] || "TBA";
       const key = `${show}|${host}|${dateKey}`;
@@ -367,12 +355,13 @@ async function renderSchedule() {
       .sort((a, b) => groups[a][0]._showStartUtc - groups[b][0]._showStartUtc)
       .forEach(key => {
         const [showName, hostName] = key.split("|");
-        const showTemplate = document.getElementById("show-template");
         const clone = document.importNode(showTemplate.content, true);
 
         const img = clone.querySelector(".show-logo");
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.onerror = () => { img.onerror = null; img.src = "Logos/GDQ Logo.png"; };
         img.src = resolveLogo(showName);
-        img.onerror = () => { img.src = "Logos/GDQ Logo.png"; };
         const showUrl = showLinks[showName.toLowerCase()];
         if (showUrl) {
           const parent = img.parentNode;
@@ -386,7 +375,7 @@ async function renderSchedule() {
         const info = clone.querySelector(".show-info");
         const firstRun = groups[key][0];
         const firstStart = firstRun._showStartUtc;
-        const showTime = formatTimeInZone(firstStart, selectedTimezone);
+        const showTime = formatTimeInZone(firstStart, tz);
 
         info.style.display = "flex";
         info.style.flexDirection = "column";
@@ -397,15 +386,13 @@ async function renderSchedule() {
           <span class="show-subtitle">Hosted by: ${renderHost(hostName)}</span>
         `;
 
-        const showTimeEl = clone.querySelector(".show-time");
-        if (showTimeEl) showTimeEl.addEventListener("click", e => e.stopPropagation());
-
         const header = clone.querySelector(".show-header");
         header.style.display = "grid";
         header.style.gridTemplateColumns = "120px 1fr";
         header.style.justifyContent = "center";
         header.style.alignItems = "center";
 
+        const runContainer = clone.querySelector(".run-container");
         const runHeader = document.createElement("div");
         runHeader.className = "run-header-row";
         runHeader.style.gridTemplateColumns = "2fr 1fr 1fr 2fr";
@@ -415,80 +402,103 @@ async function renderSchedule() {
           <div>Estimate</div>
           <div>Runner(s)</div>
         `;
-        clone.querySelector(".run-container").appendChild(runHeader);
+        runContainer.appendChild(runHeader);
 
+        // 6 minutes in between runs
         let runningTime = firstStart.getTime();
         groups[key].forEach((run, i) => {
-          // 10 Minutes in between runs 
-          // if (i > 0) runningTime += 10 * 60 * 1000;
-          // 6 minutes in between runs instead of 10
           if (i > 0) runningTime += 6 * 60 * 1000;
           run._computedStart = new Date(runningTime);
-          runningTime += estimateToMs(run["Estimate"]);
+          runningTime += run._estMs;
         });
 
         groups[key].forEach(run => {
-          const runTemplate = document.getElementById("run-template");
           const runClone = document.importNode(runTemplate.content, true);
           const runRow = runClone.querySelector(".run-row");
           runRow.style.gridTemplateColumns = "2fr 1fr 1fr 2fr";
+          // Read by the single delegated click handler (see DOMContentLoaded below)
+          runRow.dataset.start = run._computedStart.getTime();
 
           const startDiv = document.createElement("div");
           startDiv.className = "run-start";
-          startDiv.textContent = formatTimeInZone(run._computedStart, selectedTimezone);
+          startDiv.textContent = formatTimeInZone(run._computedStart, tz);
           runRow.insertBefore(startDiv, runRow.children[1]);
 
           runClone.querySelector(".game").textContent = run["Game"] || "";
           runClone.querySelector(".category").textContent = run["Category"] || "";
-          runClone.querySelector(".estimate").textContent = formatEstimateString(run["Estimate"]);
+          runClone.querySelector(".estimate").textContent = run._estStr;
           runClone.querySelector(".runner").innerHTML = renderRunners(run["Runners"], run["Runner Stream"]);
 
-          runRow.addEventListener("click", e => {
-            if (e.target.closest(".runner")) return;
-            const runDateKey = getDateKeyInZone(run._computedStart, selectedTimezone);
-            const todayKey = getDateKeyInZone(new Date(), selectedTimezone);
-            const url = runDateKey >= todayKey
-              ? "https://www.twitch.tv/gamesdonequick"
-              : "https://www.twitch.tv/gamesdonequick/videos?filter=archives&sort=time";
-            window.open(url, "_blank");
-          });
-
-          clone.querySelector(".run-container").appendChild(runClone);
+          runContainer.appendChild(runClone);
         });
 
         dayBlock.appendChild(clone);
       });
 
-    container.appendChild(dayBlock);
+    frag.appendChild(dayBlock);
   });
 
-  (function scrollToCurrentOrPastDay() {
-    const todayKey = getDateKeyInZone(new Date(), selectedTimezone);
-    const sortedDateKeys = Object.keys(byDate).sort();
-    if (!sortedDateKeys.length) return;
+  // One DOM swap each for nav and schedule
+  navContainer.replaceChildren(navFrag);
+  container.replaceChildren(frag);
+
+  // ---- Scroll handling ----
+  if (!sortedDateKeys.length) return;
+  if (autoScroll) {
+    const todayKey = getDateKeyInZone(new Date(), tz);
     const chosen = sortedDateKeys.includes(todayKey)
       ? todayKey
       : [...sortedDateKeys].reverse().find(d => d <= todayKey) || sortedDateKeys[0];
     const el = document.getElementById("day-" + chosen);
     if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      el.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
       highlightDay(chosen);
     }
-  })();
+  } else {
+    window.scrollTo(0, prevScrollY);
+    if (activeDayKey) highlightDay(activeDayKey);
+  }
 }
 
 // -------------------------------------------------------------
-// Timezone dropdown wiring + initial render
+// Load: show cached data instantly, then swap in fresh data
+// -------------------------------------------------------------
+async function init() {
+  const cachedText = readCache();
+  let hadCache = false;
+
+  if (cachedText) {
+    try {
+      setRows(JSON.parse(cachedText));
+      renderSchedule({ smooth: false });
+      hadCache = true;
+    } catch (e) {
+      console.warn("Ignoring bad schedule cache", e);
+    }
+  }
+
+  try {
+    const fresh = await freshPromise;
+    writeCache(fresh.text);
+    // Only re-render if something actually changed (or there was nothing on screen)
+    if (!hadCache || fresh.text !== cachedText) {
+      setRows(fresh.rows);
+      renderSchedule(hadCache ? { autoScroll: false } : { smooth: false });
+    }
+  } catch (err) {
+    console.error("Schedule load error:", err);
+    if (!hadCache) {
+      document.getElementById("schedule").textContent =
+        "Couldn't load the schedule right now. Please refresh in a moment.";
+    }
+  }
+}
+
+// -------------------------------------------------------------
+// Wiring + initial render
 // -------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   const select = document.getElementById("tz-select");
-  const btn = document.getElementById("tz-refresh");
-  const tzBar = document.getElementById("tz-bar");
-  const tzSpacer = document.getElementById("tz-spacer");
-
-  // Pin the bar to the bottom of the viewport on load
-  tzBar.classList.add("pinned");
-  tzSpacer.style.display = "block";
 
   // Auto-detect user's timezone and pre-select it if it's in the list
   try {
@@ -504,20 +514,26 @@ document.addEventListener("DOMContentLoaded", () => {
     // Fall back to ET if detection fails
   }
 
-  // Dropdown change: re-render with cached data in new timezone
+  // Dropdown change: re-render with already-loaded data in the new timezone
   select.addEventListener("change", () => {
     selectedTimezone = select.value;
     updateTzLabels();
     renderSchedule();
   });
 
-  // Apply button: unpin the bar, clear cache for fresh fetch, re-render
-  btn.addEventListener("click", () => {
-    selectedTimezone = select.value;
-    updateTzLabels();
-    renderSchedule();
+  // One click listener for every run row (instead of one per row)
+  document.getElementById("schedule").addEventListener("click", e => {
+    const row = e.target.closest(".run-row");
+    if (!row || e.target.closest(".runner")) return;
+    const start = Number(row.dataset.start);
+    const runDateKey = getDateKeyInZone(new Date(start), selectedTimezone);
+    const todayKey = getDateKeyInZone(new Date(), selectedTimezone);
+    const url = runDateKey >= todayKey
+      ? "https://www.twitch.tv/gamesdonequick"
+      : "https://www.twitch.tv/gamesdonequick/videos?filter=archives&sort=time";
+    window.open(url, "_blank");
   });
 
   updateTzLabels();
-  renderSchedule().catch(err => console.error("renderSchedule error:", err));
+  init();
 });
