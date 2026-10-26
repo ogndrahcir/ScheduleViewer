@@ -1,5 +1,5 @@
 // data from spreadsheet
-const DATA_URL = "https://script.google.com/macros/s/AKfycbyxanGFzAWbQV4Fso__LJh5eOb4GDjBYHx6sK79FTu3ww6z0sYs603UbQeEr-aKRoK7/exec";
+const DATA_URL = "https://script.google.com/macros/s/AKfycbzTPAKMSYPkY5PJSuxRYSDOHPvn1544IE4sox3HgdbcuSY_9iVcHHNygjUHp_njuYE1cA/exec";
 
 // localStorage key for the last-good copy of the schedule JSON
 const CACHE_KEY = "gdq-hotfix-schedule-v1";
