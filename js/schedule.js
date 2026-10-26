@@ -133,16 +133,44 @@ function formatEstimateString(raw) {
 
 /**
  * buildShowStartUtc(showDateRaw, showStartRaw)
- * Show Date from Sheets is already "midnight ET" as a real UTC moment (04:00Z in
- * EDT, 05:00Z in EST), so DST is already baked in. Adding the Eastern clock time
- * of the show start gives the real UTC start.
- * Example: Mar 15 (EDT) → 04:00Z + 13h (1 PM ET) = 17:00Z ✓
+ *
+ * Show Date  → which Eastern calendar day the show is on.
+ * Show Start → the Eastern wall-clock time (e.g. 1 PM).
+ *
+ * These are combined as an Eastern WALL-CLOCK time and converted to UTC using
+ * the offset that is actually in effect at that moment. (Adding "13 hours" to
+ * midnight ET is wrong on the day DST ends/starts, because that day is 25/23
+ * hours long: Nov 1 midnight is still EDT but 1 PM is already EST.)
  */
 function buildShowStartUtc(showDateRaw, showStartRaw) {
   const dateD = parseShowDate(showDateRaw);
   if (!dateD) return null;
+
+  // Read the Eastern calendar date. Sampling 12h after the Sheets "midnight" keeps
+  // us safely inside the intended day even if the date arrives as 04:00Z or 05:00Z.
+  const p = getFmt("etParts", ET_TZ).formatToParts(new Date(dateD.getTime() + 12 * 3600 * 1000));
+  const g = t => Number(p.find(x => x.type === t).value);
+
   const { h, m } = parseShowStart(showStartRaw);
-  return new Date(dateD.getTime() + (h * 60 + m) * 60 * 1000);
+  return new Date(easternWallClockToUtcMs(g("year"), g("month"), g("day"), h, m));
+}
+
+const ET_TZ = "America/New_York";
+
+// Eastern offset from UTC (in ms, negative) in effect at a given UTC instant
+function getEtOffsetMs(utcMs) {
+  const p = getFmt("etParts", ET_TZ).formatToParts(new Date(utcMs));
+  const g = t => Number(p.find(x => x.type === t).value);
+  const wallAsUtc = Date.UTC(g("year"), g("month") - 1, g("day"), g("hour"), g("minute"), g("second"));
+  return wallAsUtc - Math.floor(utcMs / 1000) * 1000;
+}
+
+// Convert an Eastern wall-clock date/time to a real UTC timestamp (DST-aware).
+// Two passes so the offset is looked up at the right instant near a transition.
+function easternWallClockToUtcMs(year, month, day, hour, minute) {
+  const guess = Date.UTC(year, month - 1, day, hour, minute);
+  const first = guess - getEtOffsetMs(guess);
+  return guess - getEtOffsetMs(first);
 }
 
 // Parse everything that doesn't depend on the selected timezone ONCE per data load,
@@ -165,7 +193,8 @@ const FORMAT_OPTS = {
   dateKey:  { year: "numeric", month: "2-digit", day: "2-digit" },
   weekday:  { weekday: "long" },
   monthDay: { month: "short", day: "numeric" },
-  time:     { hour: "numeric", minute: "2-digit", hour12: true }
+  time:     { hour: "numeric", minute: "2-digit", hour12: true },
+  etParts:  { year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric", hourCycle: "h23" }
 };
 const fmtCache = new Map();
 function getFmt(kind, tz) {
